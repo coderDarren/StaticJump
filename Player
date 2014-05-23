@@ -20,7 +20,8 @@ namespace StaticJump
 		private const float JUMP_POW_RATE = 0.1f; // controls the rate at which jump power increases
 		private const long FRAME_DURATION = 75;
 		private const float FRAME_HEIGHT = 52;
-		private const float FRAME_WIDTH = 24;
+		private const float RUNNING_FRAME_WIDTH = 24;
+		private const float SHOOTING_FRAME_WIDTH = 32;
 		private int activeFrame;
 		private long animationTimer;
 		
@@ -49,7 +50,7 @@ namespace StaticJump
 			s = new Sprite(graphics, tex);
 			s.Center = new Vector2(0.5f, 0.5f);
 			s.Position = pos;
-			s.Width = FRAME_WIDTH;
+			s.Width = RUNNING_FRAME_WIDTH;
 			s.Height = FRAME_HEIGHT;
 			
 			jumpPower = 0;
@@ -196,6 +197,19 @@ namespace StaticJump
 				currAnim = Animation.Stationary;
 				activeFrame = 5;
 			}
+			if ((gamePadData.Buttons & GamePadButtons.Square) != 0)
+			{
+				//Shooting animation
+				//Run once per click
+				shootTimer += dt;
+				if (shootTimer > 500)
+				{
+					activeFrame = 0;
+					animationTimer = 0;
+					currAnim = Animation.Shooting;
+					shootTimer = 0;
+				}
+			}
 		}
 		
 		private void UpdateStationary()
@@ -250,12 +264,12 @@ namespace StaticJump
 			switch (currAnim)
 			{
 			case Animation.Jumping: break;
-			case Animation.Running: UpdateRunningAnim(dt); break;
-			case Animation.Shooting: break;
+			case Animation.Running: UpdateRunningAnim(dt, 6); break;
+			case Animation.Shooting: UpdateShootingAnim(dt, 6); break;
 			}
 		}
 		
-		private void UpdateRunningAnim(long dt)
+		private void UpdateRunningAnim(long dt, int frame_Num)
 		{
 			animationTimer+=dt;
 			if (animationTimer > FRAME_DURATION)
@@ -263,8 +277,29 @@ namespace StaticJump
 				activeFrame++;
 				animationTimer = 0;
 			}
-			if (activeFrame > 5)
+			if (activeFrame > frame_Num-1)
 				activeFrame = 0;
+			
+			s.Width = RUNNING_FRAME_WIDTH;
+		}
+		
+		private void UpdateShootingAnim(long dt, int frame_Num)
+		{
+			animationTimer+=dt;
+			if (animationTimer > FRAME_DURATION)
+			{
+				activeFrame++;
+				animationTimer = 0;
+			}
+			
+			if (activeFrame > frame_Num-1)
+			{
+				activeFrame = 0;
+				animationTimer = 0;
+				currAnim = Animation.Stationary;
+			}
+			
+			s.Width = SHOOTING_FRAME_WIDTH;
 		}
 		
 		#endregion
@@ -275,15 +310,20 @@ namespace StaticJump
 		{
 			switch (currAnim)
 			{
-			case Animation.Running: 
+			case Animation.Running:
 			case Animation.Stationary:
-				s.SetTextureCoord( activeFrame * FRAME_WIDTH, 
+				s.SetTextureCoord( activeFrame * RUNNING_FRAME_WIDTH, 
 				                  (int)dir * FRAME_HEIGHT,
-				                  ((activeFrame+1)*FRAME_WIDTH)-1,
+				                  ((activeFrame+1)*RUNNING_FRAME_WIDTH)-1,
 				                  ((int)dir + 1) * FRAME_HEIGHT );
 				break;
 			case Animation.Jumping: break;
-			case Animation.Shooting: break;
+			case Animation.Shooting: 
+				s.SetTextureCoord( activeFrame * SHOOTING_FRAME_WIDTH, 
+				                  ((int)dir+2) * FRAME_HEIGHT,
+				                  ((activeFrame+1)*SHOOTING_FRAME_WIDTH)-1,
+				                  ((int)dir + 3) * FRAME_HEIGHT );
+				break;
 			}
 			
 			s.Render();	
