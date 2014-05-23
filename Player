@@ -1,0 +1,292 @@
+using System;
+using System.Collections.Generic;
+using Sce.PlayStation.Core;
+using Sce.PlayStation.Core.Graphics;
+using Sce.PlayStation.Core.Imaging;
+using Sce.PlayStation.Core.Input;
+
+namespace StaticJump
+{
+	public class Player
+	{
+		public enum PlayerState {Jumping, Falling, Stationary };
+		public PlayerState currState;
+		private enum Direction { Right, Left };
+		private Direction dir;
+		public enum Animation { Jumping, Running, Shooting, Stationary };
+		public Animation currAnim;
+		
+		private const float GRAVITY = 2.4f;
+		private const float JUMP_POW_RATE = 0.1f; // controls the rate at which jump power increases
+		private const long FRAME_DURATION = 75;
+		private const float FRAME_HEIGHT = 52;
+		private const float FRAME_WIDTH = 24;
+		private int activeFrame;
+		private long animationTimer;
+		
+		private GraphicsContext graphics;
+		private Vector3 pos;
+		private Sprite s;
+		
+		private float jumpPower; // builds power for higher jumping
+		private float jumpDamper; // slows the player as he/she rises into the air
+		private float fallAccelerator; // increases the speed the player up as he/she falls
+		private bool grounded;
+		private float jumpSpeed;
+		private float speed;
+		private float weight; // something between 0 and 2.0f
+		private int score;
+		private float groundedSpeed; //controls the speed of the player depending on what platform he is on
+		
+		private long jumpPowerTimer; // determines when to begin building jump power
+		private long jumpReleaseTimer; // used to determine how long ago the jump button was released
+		private long jumpTimer; // used to determine how long the player rises in the air after jumping
+		
+		public Player (GraphicsContext gc, Vector3 pos, Texture2D tex)
+		{
+			graphics = gc;
+			this.pos = pos;
+			s = new Sprite(graphics, tex);
+			s.Center = new Vector2(0.5f, 0.5f);
+			s.Position = pos;
+			s.Width = FRAME_WIDTH;
+			s.Height = FRAME_HEIGHT;
+			
+			jumpPower = 0;
+			jumpDamper = 0;
+			fallAccelerator = 0;
+			grounded = false;
+			jumpPowerTimer = 0;
+			jumpReleaseTimer = 45;
+			jumpTimer = 0;
+			jumpSpeed = 4.0f;
+			speed = 4.0f;
+			weight = 0.2f;
+			activeFrame = 0;
+			animationTimer = 0;
+			score = 0;
+			groundedSpeed = 0;
+			
+			currState = PlayerState.Falling;
+			dir = Direction.Right;
+			currAnim = Animation.Stationary;
+		}
+		
+		#region Properties 
+		
+		public Vector3 Pos
+		{
+			get { return pos; }
+			set { if (value.X > 10 && value.X < graphics.Screen.Width - 20 )pos = value; }
+		}
+		
+		public Rectangle Extents
+		{
+			get { return new Rectangle(pos.X, pos.Y, s.Width, s.Height); }	
+		}
+		
+		public bool Grounded
+		{
+			get { return grounded; }
+			set { grounded = value; }
+		}
+		
+		public float JumpPower
+		{
+			get { return jumpPower; }	
+		}
+		
+		public float Speed
+		{
+			get { return speed; }
+			set { if (value <= 3.0f && value >= 0.4f) speed = value; }
+		}
+		
+		public float Weight
+		{
+			get { return weight; }
+			set { if (value >= 0 && value <= 2.0f) weight = value; }
+		}
+		
+		public int Score
+		{
+			get { return score; }
+		}
+		
+		public float GroundedSpeed
+		{
+			get { return groundedSpeed; }
+			set { if (value <= 4.0f && value >= -4.0f) groundedSpeed = value; }
+		}
+		
+		#endregion
+		
+		
+		
+		
+		#region Updating
+		
+		public void Update(long dt)
+		{
+			Move (dt);
+			RunAnimation(dt);
+			
+			switch (currState)
+			{
+			case PlayerState.Stationary: UpdateStationary(); break;
+			case PlayerState.Falling: UpdateFalling(); break;
+			case PlayerState.Jumping: UpdateJumping(dt); break;
+			}
+			
+			if (currState != PlayerState.Jumping && !grounded)
+					currState = PlayerState.Falling;
+			
+			s.Position = pos;
+			Console.WriteLine(AppMain.debug ? "Grounded: " +grounded : null);
+		}
+		
+		
+		
+		
+		
+		private void Move(long dt)
+		{
+			var gamePadData = GamePad.GetData(0);
+			
+			if ((gamePadData.Buttons & GamePadButtons.Left) != 0)
+			{
+				//Move Left
+				Pos += new Vector3(-speed, 0, 0);
+				dir = Direction.Left;
+				currAnim = Animation.Running;
+			}
+			if ((gamePadData.Buttons & GamePadButtons.Right) != 0)
+			{
+				//Move Right
+				Pos += new Vector3(speed, 0, 0);
+				dir = Direction.Right;
+				currAnim = Animation.Running;
+				score ++;
+			}
+			if ((gamePadData.Buttons & GamePadButtons.Cross) == 0)
+			{
+				//Jump
+				jumpPowerTimer = 0;
+				jumpReleaseTimer += dt;
+				if (jumpReleaseTimer <= 500)
+					currState = PlayerState.Jumping;
+			}
+			if ((gamePadData.Buttons & GamePadButtons.Cross) != 0 && grounded)
+			{
+				//Increase Jump Power
+				jumpReleaseTimer = 0;
+				jumpPowerTimer += dt;
+				if (jumpPowerTimer > 40)
+				{
+					if (jumpPower < 1.0f)
+						jumpPower += JUMP_POW_RATE;
+					jumpPowerTimer = 0;
+				}
+				Console.WriteLine(AppMain.debug ? "Jump Power: " +jumpPower : null);
+			}
+			if ((gamePadData.Buttons & GamePadButtons.Left) == 0 &&
+			    (gamePadData.Buttons & GamePadButtons.Right) == 0 && currState != PlayerState.Jumping && currState != PlayerState.Falling)
+			{
+				//No animation	
+				currAnim = Animation.Stationary;
+				activeFrame = 5;
+			}
+		}
+		
+		private void UpdateStationary()
+		{
+			Pos += new Vector3(-groundedSpeed, 0, 0);
+		}
+		
+		private void UpdateFalling()
+		{
+			Console.WriteLine(AppMain.debug ? "Updating fall" : null);
+			
+			jumpPower =0; //reset to 0 since jump is completed
+			
+			if (!grounded)
+			{
+				//dont want to speed up too quickly
+				if (fallAccelerator < GRAVITY / 2)
+					fallAccelerator += 0.05f;
+				Pos += new Vector3(0, GRAVITY + (weight * 2) + fallAccelerator, 0);
+			}
+		}
+		
+		private void UpdateJumping(long dt)
+		{
+			Console.WriteLine(AppMain.debug ? "Updating jump" : null);
+			
+			if (jumpPower < 0.3f)
+				jumpDamper += 0.1f;
+			else
+				jumpDamper += 0.15f;
+				
+			Pos += new Vector3(0, -jumpSpeed + weight + jumpDamper - jumpPower*6, 0);
+			
+			jumpTimer += dt;
+			if (jumpTimer >= 900)
+			{
+				jumpTimer = 0;
+				jumpDamper = 0;
+				fallAccelerator = 0;
+				currState = PlayerState.Falling;
+			}
+		}
+		
+		#endregion
+		
+		
+		
+		#region Animation
+		
+		private void RunAnimation(long dt)
+		{
+			switch (currAnim)
+			{
+			case Animation.Jumping: break;
+			case Animation.Running: UpdateRunningAnim(dt); break;
+			case Animation.Shooting: break;
+			}
+		}
+		
+		private void UpdateRunningAnim(long dt)
+		{
+			animationTimer+=dt;
+			if (animationTimer > FRAME_DURATION)
+			{
+				activeFrame++;
+				animationTimer = 0;
+			}
+			if (activeFrame > 5)
+				activeFrame = 0;
+		}
+		
+		#endregion
+		
+		
+		
+		public void Render()
+		{
+			switch (currAnim)
+			{
+			case Animation.Running: 
+			case Animation.Stationary:
+				s.SetTextureCoord( activeFrame * FRAME_WIDTH, 
+				                  (int)dir * FRAME_HEIGHT,
+				                  ((activeFrame+1)*FRAME_WIDTH)-1,
+				                  ((int)dir + 1) * FRAME_HEIGHT );
+				break;
+			case Animation.Jumping: break;
+			case Animation.Shooting: break;
+			}
+			
+			s.Render();	
+		}
+	}
+}
