@@ -188,7 +188,7 @@ namespace StaticJump
 			midground.UpdateBackground();
 			scoreLabel.UpdateScore(player.Score);
 			CheckCollisions();
-			//CheckForFallingPlatforms();
+			CheckForFallingPlatforms();
 			CheckForDeadObjects();
 			
 			Console.WriteLine(debug ? "Platforms On Screen: " + totalPlatforms : null);
@@ -229,7 +229,7 @@ namespace StaticJump
 			
 			foreach(Platform plat in platforms)
 			{
-				if (plat.ContainsPlayer && player.JumpPower >= 0.9 && 
+				if (plat.ContainsPlayer &&
 				   (gamePadData.Buttons & GamePadButtons.Cross) == 0)
 				{
 					plat.currState = Platform.State.Crumbling;
@@ -263,6 +263,12 @@ namespace StaticJump
 						player.GroundedSpeed = plat.ScrollSpeed;
 						player.Grounded = true;
 						player.currState = Player.PlayerState.Stationary;
+						//set platform state to will fall
+						if (player.JumpPower >= 0.9f)
+							plat.WillFall = true;
+						else 
+							plat.WillFall = false;
+						
 						break;
 					}
 				}
