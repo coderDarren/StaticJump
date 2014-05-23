@@ -12,7 +12,7 @@ namespace StaticJump
 		public enum State { Solid, Crumbling, Falling, Fading } 
 		public State currState;
 		private const float FALL_SPEED = 1.2f;
-		private bool containsPlayer;
+		private bool willFall;
 		private float stickiness;
 		private Sprite t;
 		private float scroll_speed;
@@ -25,7 +25,7 @@ namespace StaticJump
 			t.Position = pos;
 			stickiness = 5.0f; 
 			this.scroll_speed = 0.8f;
-			containsPlayer = false;
+			willFall = false;
 			Console.WriteLine(AppMain.debug ? "Platform Scroll Speed: " + scroll_speed : null);
 		}
 		
@@ -46,10 +46,10 @@ namespace StaticJump
 			get { return new Rectangle(Pos.X, Pos.Y, t.Width, t.Height); }	
 		}
 		
-		public bool ContainsPlayer
+		public bool WillFall
 		{
-			get { return containsPlayer; }
-			set { containsPlayer = value; }
+			get { return willFall; }
+			set { willFall = value; }
 		}
 		
 		public void UpdatePos ()
