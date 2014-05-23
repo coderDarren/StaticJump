@@ -13,15 +13,14 @@ namespace StaticJump
 		public PlayerState currState;
 		private enum Direction { Right, Left };
 		private Direction dir;
-		public enum Animation { Jumping, Running, Shooting, Stationary };
+		public enum Animation { Running, Stationary, StationaryShoot };
 		public Animation currAnim;
 		
 		private const float GRAVITY = 2.4f;
 		private const float JUMP_POW_RATE = 0.1f; // controls the rate at which jump power increases
 		private const long FRAME_DURATION = 75;
 		private const float FRAME_HEIGHT = 52;
-		private const float RUNNING_FRAME_WIDTH = 24;
-		private const float SHOOTING_FRAME_WIDTH = 32;
+		private const float FRAME_WIDTH = 24;
 		private int activeFrame;
 		private long animationTimer;
 		
@@ -50,7 +49,7 @@ namespace StaticJump
 			s = new Sprite(graphics, tex);
 			s.Center = new Vector2(0.5f, 0.5f);
 			s.Position = pos;
-			s.Width = RUNNING_FRAME_WIDTH;
+			s.Width = FRAME_WIDTH;
 			s.Height = FRAME_HEIGHT;
 			
 			jumpPower = 0;
@@ -131,6 +130,7 @@ namespace StaticJump
 		{
 			Move (dt);
 			RunAnimation(dt);
+			CheckShootInput(dt);
 			
 			switch (currState)
 			{
@@ -140,9 +140,13 @@ namespace StaticJump
 			}
 			
 			if (currState != PlayerState.Jumping && !grounded)
-					currState = PlayerState.Falling;
+				currState = PlayerState.Falling;
+					
+			if (currState == PlayerState.Jumping || 
+			    currState == PlayerState.Falling)
+				activeFrame = 3;			//This will prevent the player from running in air
 			
-			s.Position = pos;
+			s.Position = Pos;
 			Console.WriteLine(AppMain.debug ? "Grounded: " +grounded : null);
 		}
 		
@@ -197,16 +201,23 @@ namespace StaticJump
 				currAnim = Animation.Stationary;
 				activeFrame = 5;
 			}
-			if ((gamePadData.Buttons & GamePadButtons.Square) != 0)
+		
+		}
+		
+		private void CheckShootInput(long dt)
+		{
+			var gamePadData = GamePad.GetData(0);
+			
+			shootTimer += dt;
+			if (shootTimer > 500)
 			{
-				//Shooting animation
-				//Run once per click
-				shootTimer += dt;
-				if (shootTimer > 500)
+				if ((gamePadData.Buttons & GamePadButtons.Square) != 0)
 				{
+					//Shooting animation
+					//Run once per click
 					activeFrame = 0;
 					animationTimer = 0;
-					currAnim = Animation.Shooting;
+					currAnim = Animation.StationaryShoot;
 					shootTimer = 0;
 				}
 			}
@@ -263,9 +274,8 @@ namespace StaticJump
 		{
 			switch (currAnim)
 			{
-			case Animation.Jumping: break;
 			case Animation.Running: UpdateRunningAnim(dt, 6); break;
-			case Animation.Shooting: UpdateShootingAnim(dt, 6); break;
+			case Animation.StationaryShoot: UpdateStationaryShootAnim(dt, 6); break;
 			}
 		}
 		
@@ -280,10 +290,9 @@ namespace StaticJump
 			if (activeFrame > frame_Num-1)
 				activeFrame = 0;
 			
-			s.Width = RUNNING_FRAME_WIDTH;
 		}
 		
-		private void UpdateShootingAnim(long dt, int frame_Num)
+		private void UpdateStationaryShootAnim(long dt, int frame_Num)
 		{
 			animationTimer+=dt;
 			if (animationTimer > FRAME_DURATION)
@@ -294,12 +303,11 @@ namespace StaticJump
 			
 			if (activeFrame > frame_Num-1)
 			{
-				activeFrame = 0;
+				activeFrame = 5;
 				animationTimer = 0;
 				currAnim = Animation.Stationary;
 			}
 			
-			s.Width = SHOOTING_FRAME_WIDTH;
 		}
 		
 		#endregion
@@ -312,16 +320,15 @@ namespace StaticJump
 			{
 			case Animation.Running:
 			case Animation.Stationary:
-				s.SetTextureCoord( activeFrame * RUNNING_FRAME_WIDTH, 
+				s.SetTextureCoord( activeFrame * FRAME_WIDTH, 
 				                  (int)dir * FRAME_HEIGHT,
-				                  ((activeFrame+1)*RUNNING_FRAME_WIDTH)-1,
+				                  ((activeFrame+1)*FRAME_WIDTH)-1,
 				                  ((int)dir + 1) * FRAME_HEIGHT );
 				break;
-			case Animation.Jumping: break;
-			case Animation.Shooting: 
-				s.SetTextureCoord( activeFrame * SHOOTING_FRAME_WIDTH, 
-				                  ((int)dir+2) * FRAME_HEIGHT,
-				                  ((activeFrame+1)*SHOOTING_FRAME_WIDTH)-1,
+			case Animation.StationaryShoot: 
+				s.SetTextureCoord( activeFrame * FRAME_WIDTH, 
+				                  ((int)dir + 2) * FRAME_HEIGHT,
+				                  ((activeFrame+1)*FRAME_WIDTH)-1,
 				                  ((int)dir + 3) * FRAME_HEIGHT );
 				break;
 			}
