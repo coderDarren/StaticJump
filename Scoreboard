@@ -1,0 +1,46 @@
+using System;
+using System.Collections.Generic;
+using Sce.PlayStation.Core;
+using Sce.PlayStation.Core.Graphics;
+using Sce.PlayStation.Core.Imaging;
+using Sce.PlayStation.Core.Input;
+using Sce.PlayStation.HighLevel.UI;
+
+namespace StaticJump
+{
+	public class Scoreboard
+	{
+		private GraphicsContext graphics;
+		private Label score;
+		
+		public Scoreboard (GraphicsContext gc)
+		{
+			graphics = gc;
+			
+			UISystem.Initialize(graphics);
+			Scene scene = new Scene();
+			score = new Label();
+			
+			score.Width = 200;
+			score.HorizontalAlignment = HorizontalAlignment.Center;
+			score.Y = 0;
+			score.X = graphics.Screen.Width / 2 - score.Width / 2;
+			score.Font = new UIFont(FontAlias.System, 32, FontStyle.Bold);
+			score.Text = "0";
+			
+			scene.RootWidget.AddChildLast(score);
+			
+			UISystem.SetScene(scene);
+		}
+		
+		public void UpdateScore(int score)
+		{
+			this.score.Text = ""+score;
+		}
+		
+		public void Render()
+		{
+			UISystem.Render();	
+		}
+	}
+}
