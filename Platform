@@ -1,0 +1,87 @@
+using System;
+using System.Collections.Generic;
+using Sce.PlayStation.Core;
+using Sce.PlayStation.Core.Graphics;
+using Sce.PlayStation.Core.Imaging;
+
+namespace StaticJump
+{
+	public class Platform : GameObject
+	{
+		private GraphicsContext graphics;
+		public enum State { Solid, Crumbling, Falling, Fading } 
+		public State currState;
+		private const float FALL_SPEED = 1.2f;
+		private bool containsPlayer;
+		private float stickiness;
+		private Sprite t;
+		private float scroll_speed;
+				
+		public Platform (GraphicsContext gc, Vector3 pos, Texture2D tex, string id) : base(gc, pos, tex, id) 
+		{
+			graphics = gc;
+			t = new Sprite(gc, tex);
+			t.Center = new Vector2(0f, 0f);
+			t.Position = pos;
+			stickiness = 5.0f; 
+			this.scroll_speed = 0.8f;
+			containsPlayer = false;
+			Console.WriteLine(AppMain.debug ? "Platform Scroll Speed: " + scroll_speed : null);
+		}
+		
+		public float ScrollSpeed
+		{
+			get { return scroll_speed; }
+			set { if (value >= -4.0f && value <= 4.0f) scroll_speed = value; }
+		}
+		
+		public float Stickiness
+		{
+			get { return stickiness; }
+			set { stickiness = value; }
+		}
+		
+		public Rectangle Extents
+		{
+			get { return new Rectangle(Pos.X, Pos.Y, t.Width, t.Height); }	
+		}
+		
+		public bool ContainsPlayer
+		{
+			get { return containsPlayer; }
+			set { containsPlayer = value; }
+		}
+		
+		public void UpdatePos ()
+		{
+			t.Position = Pos;
+		}
+		
+		public void Move()
+		{
+			switch (currState)
+			{
+			case State.Solid: break;
+			case State.Crumbling: UpdateCrumbling(); break;
+			case State.Fading: break;
+			case State.Falling: break;
+			}
+			
+			Pos += new Vector3(-scroll_speed, 0, 0);
+		}
+		
+		private void UpdateCrumbling()
+		{
+			Pos += new Vector3(0, FALL_SPEED, 0);
+		}
+				
+		public void RunAI() {}
+		
+		public void Animate() {}
+		
+		public void Render() 
+		{
+			t.Render();	
+		}
+	}
+}
