@@ -1,0 +1,398 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using Sce.PlayStation.Core;
+using Sce.PlayStation.Core.Environment;
+using Sce.PlayStation.Core.Graphics;
+using Sce.PlayStation.Core.Input;
+
+namespace StaticJump
+{
+	public class AppMain
+	{
+		public static bool debug = true;
+		
+		private static GraphicsContext graphics;
+		private enum GameState { Menu, Playing, Paused };
+		private static GameState currState;
+		private static int totalPlatforms; //difficulty guage
+		
+		private static Random randGen;
+		private static int randCoordX;
+		private static int randCoordY;
+		
+		
+		#region Collections 
+		
+		private static List<Platform> platforms;
+		private static List<Power> powers;
+		
+		#endregion
+		
+		
+		
+		#region Textures
+		
+		private static Texture2D platform1Tex;
+		private static Texture2D power1Tex;
+		private static Texture2D bg1Tex; //background
+		private static Texture2D mg1Tex; //midground
+		private static Texture2D playerTex;
+		
+		#endregion
+		
+		
+		
+		#region Game Objects
+		
+		private static Platform platform;
+		private static Power power;
+		private static Background background;
+		private static Background midground;
+		private static Player player;
+		private static Scoreboard scoreLabel;
+		
+		#endregion
+		
+		
+		
+		#region Timers
+		
+		private static Stopwatch clock;
+		private static long startTime;
+		private static long stopTime;
+		private static long deltaTime;
+		private static long restartTimer; //used for only allowing one restart within some time
+		
+		#endregion
+		
+		
+		
+		#region Counters
+		
+		private static int difficultyCounter; //used to determine when to increase difficulty
+		
+		#endregion
+		
+		
+		
+		#region UI
+		
+		
+		
+		#endregion
+		
+		
+		public static void Main (string[] args)
+		{
+			Initialize ();
+
+			while (true) {
+				startTime = clock.ElapsedMilliseconds;
+				SystemEvents.CheckEvents ();
+				Update ();
+				Render ();
+				stopTime = clock.ElapsedMilliseconds;
+				deltaTime = stopTime - startTime;
+			}
+		}
+		
+		
+		
+		#region Initialization
+		
+		public static void Initialize ()
+		{
+			// Set up the graphics system
+			graphics = new GraphicsContext ();
+			randGen = new Random();
+			clock = new Stopwatch();
+			clock.Start();
+			
+			StartGame();
+		}
+		
+		private static void InitializeCollections()
+		{
+			platforms = new List<Platform>();
+			powers = new List<Power>();
+		}
+		
+		private static void InitializeTextures()
+		{
+			platform1Tex = new Texture2D("Application/Assets/platform1.png", false);
+			//power1Tex = new Texture2D("Application/Assets/diamond.png", false);
+			bg1Tex = new Texture2D("Application/Assets/background1.png", false);
+			mg1Tex = new Texture2D("Application/Assets/midground1.png", false);
+			playerTex = new Texture2D("Application/Assets/player_running_sheet.png", false);
+		}
+		
+		private static void InitializeObjects()
+		{
+			//Initially spawn enough for a double wide screen
+			SpawnPlatforms(platform1Tex, totalPlatforms, 0, 100, graphics.Screen.Height - 100, (graphics.Screen.Width) / totalPlatforms);
+			SpawnPlatforms(platform1Tex, totalPlatforms-1, graphics.Screen.Width, 100, graphics.Screen.Height - 100, (graphics.Screen.Width) / (totalPlatforms-1));
+			background = new Background(graphics, bg1Tex, 0.2f);
+			midground = new Background(graphics, mg1Tex, 0.4f);
+			player = new Player(graphics, new Vector3(platforms[1].Pos.X, platforms[1].Pos.Y - 40, 0), playerTex);
+			scoreLabel = new Scoreboard(graphics);
+		}	
+		
+		private static void StartGame()
+		{
+			restartTimer = 0;
+			totalPlatforms = 10;
+			difficultyCounter = 0;
+			
+			InitializeCollections();
+			InitializeTextures();
+			InitializeObjects();
+			
+			currState = GameState.Playing;
+		}
+		
+		#endregion
+		
+		
+		
+		#region Updating
+
+		public static void Update ()
+		{
+			// Query gamepad for current state
+			var gamePadData = GamePad.GetData (0);
+			
+			switch (currState)
+			{
+			case GameState.Menu: UpdateMenu(); break;	
+			case GameState.Playing: UpdatePlaying(); break;
+			case GameState.Paused: UpdatePaused(); break;
+			}
+			
+			CheckPlayInput();
+		}
+		
+		private static void UpdateMenu()
+		{}
+		
+		private static void UpdatePlaying()
+		{
+			foreach (Platform plat in platforms)
+			{
+				plat.Move();
+				plat.UpdatePos();
+			}
+			player.Update(deltaTime);
+			UpdateDifficulty();
+			background.UpdateBackground();
+			midground.UpdateBackground();
+			scoreLabel.UpdateScore(player.Score);
+			CheckCollisions();
+			//CheckForFallingPlatforms();
+			CheckForDeadObjects();
+			
+			Console.WriteLine(debug ? "Platforms On Screen: " + totalPlatforms : null);
+		}
+		
+		
+		//Thanks Trevor Love!
+		private static void SpawnPlatforms(Texture2D tex, int numObjects, int minX, int minY, int maxY, float minXDist)
+		{
+			for (int i = 0; i < numObjects; i++)
+			{
+				Console.WriteLine(debug ? "Platform Separation: " + minXDist : null);
+				randCoordY = randGen.Next(minY, maxY);
+				platform = new Platform(graphics, new Vector3((minX) + i * (minXDist), randCoordY, 0), tex, "platform");
+				platforms.Add(platform);
+			}
+		}
+		
+		private static void UpdateDifficulty()
+		{			
+			if (difficultyCounter / totalPlatforms == 1)
+			{
+				if (totalPlatforms > 4)
+				{
+					totalPlatforms--;
+					SpawnPlatforms(platform1Tex, totalPlatforms, graphics.Screen.Width, 100, graphics.Screen.Height - 50, (graphics.Screen.Width) / totalPlatforms);
+				}
+				else //totalPlatforms needs to add 1 to conform with the range of the list in CheckForDeadObjects()
+					SpawnPlatforms(platform1Tex, totalPlatforms+1, graphics.Screen.Width, 100, graphics.Screen.Height - 100, (graphics.Screen.Width) / totalPlatforms);
+				
+				difficultyCounter = 0;
+			}
+		}
+		
+		private static void CheckForFallingPlatforms()
+		{
+			var gamePadData = GamePad.GetData(0);
+			
+			foreach(Platform plat in platforms)
+			{
+				if (plat.ContainsPlayer && player.JumpPower >= 0.9 && 
+				   (gamePadData.Buttons & GamePadButtons.Cross) == 0)
+				{
+					plat.currState = Platform.State.Crumbling;
+				}
+			}
+		}
+		
+		private static void UpdatePaused()
+		{}
+		
+		#endregion
+		
+		
+		
+		
+		
+		
+		#region Collision Testing
+		
+		private static void CheckCollisions()
+		{			
+			foreach (Platform plat in platforms)
+			{
+				if (Collides(player.Extents, plat.Extents) == true)
+				{
+					plat.ContainsPlayer = true;
+					
+					if (player.Pos.Y + player.Extents.Height / 2 >= plat.Pos.Y && 
+					    player.Pos.Y + player.Extents.Height / 2 <= plat.Pos.Y + 10) // fall-through allowance
+					{
+						player.GroundedSpeed = plat.ScrollSpeed;
+						player.Grounded = true;
+						player.currState = Player.PlayerState.Stationary;
+						break;
+					}
+				}
+				else
+				{
+					player.Grounded = false;
+				}
+			}
+		}
+		
+		//Made for player on platforms
+		private static bool Collides(Rectangle r1, Rectangle r2)
+		{
+			if (r1.Position.X + r1.Width / 2 < r2.Position.X)
+				return false;
+			if (r1.Position.X - r1.Width / 2 > r2.Position.X + r2.Width)
+				return false;
+			if (r1.Position.Y + r1.Height / 2 < r2.Position.Y)
+				return false;
+			if (r1.Position.Y - r1.Height / 2 > r2.Position.Y + r2.Height)
+				return false;
+			
+			return true;
+		}
+		
+		#endregion
+		
+		
+		
+		
+		
+		#region Input
+		
+		private static void CheckPlayInput()
+		{
+			var gamePadData = GamePad.GetData(0);
+			
+			restartTimer += deltaTime;
+			if ((gamePadData.Buttons & GamePadButtons.Start) != 0)
+			{
+				if (restartTimer > 300)
+				{
+					StartGame();
+					restartTimer = 0;
+				}
+			}
+		}
+		
+		#endregion
+		
+		
+		
+		
+		#region Garbage
+		
+		private static void CheckForDeadObjects()
+		{
+			if (platforms[totalPlatforms].Pos.X < -80)
+			{
+				for (int z = totalPlatforms; z >= 0; z--)
+					platforms[z].Alive = false;
+			}
+			
+			for (int i = platforms.Count - 1; i >= 0; i--)
+			{
+				if (platforms[i].Alive == false)
+				{
+					platforms.RemoveAt(i);
+					difficultyCounter++;
+					Console.WriteLine(debug ? "Difficulty Counter: " +difficultyCounter : null);
+				}
+			}
+		}
+		
+		#endregion
+		
+		
+		
+		
+		#region Rendering
+
+		public static void Render ()
+		{
+			switch (currState)
+			{
+			case GameState.Menu: RenderMenu(); break;
+			case GameState.Playing: RenderPlaying(); break;
+			case GameState.Paused: RenderPaused(); break;
+			}
+		}
+		
+		private static void RenderMenu()
+		{
+			// Clear the screen
+			graphics.SetClearColor (0.0f, 0.0f, 0.0f, 0.0f);
+			graphics.Clear ();
+
+			// Present the screen
+			graphics.SwapBuffers ();
+		}
+		
+		private static void RenderPlaying()
+		{
+			// Clear the screen
+			graphics.SetClearColor (0.0f, 0.0f, 0.0f, 0.0f);
+			graphics.Clear ();
+			
+			background.Render();
+			midground.Render();
+			foreach (Platform ter in platforms)
+			{
+				ter.Render();	
+			}
+			scoreLabel.Render();
+			player.Render();
+			
+			// Present the screen
+			graphics.SwapBuffers ();
+		}
+		
+		private static void RenderPaused()
+		{
+			// Clear the screen
+			graphics.SetClearColor (0.0f, 0.0f, 0.0f, 0.0f);
+			graphics.Clear ();
+
+			// Present the screen
+			graphics.SwapBuffers ();
+		}
+		
+		#endregion
+	}
+}
