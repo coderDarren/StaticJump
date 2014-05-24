@@ -254,6 +254,8 @@ namespace StaticJump
 				
 			Pos += new Vector3(0, -jumpSpeed + weight + jumpDamper - jumpPower*6, 0);
 			
+			jumpPower -= 0.01f; // helps with a more parabolic motion on jumps
+			
 			jumpTimer += dt;
 			if (jumpTimer >= 900)
 			{
