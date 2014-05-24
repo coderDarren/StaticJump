@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Sce.PlayStation.Core;
 using Sce.PlayStation.Core.Environment;
 using Sce.PlayStation.Core.Graphics;
@@ -15,14 +14,13 @@ namespace StaticJump
 		private Sprite background;
 		private Sprite controls;
 		private Sprite selector;
-		private Vector3 selPos;
 		private GraphicsContext graphics;
 		
 		public MainMenu (GraphicsContext gc)
 		{
 			graphics = gc;
-			Texture2D backTex = new Texture2D("/Applications/Assets/background1.png",false);
-			Texture2D selectorTex = new Texture2D("/Applications/Assets/background1.png",false);
+			Texture2D backTex = new Texture2D("/Application/Assets/StaticJumpPromotional.png",false);
+			Texture2D selectorTex = new Texture2D("/Application/Assets/background1.png",false);
 			highlight = MenuHighlights.StartGame;
 			
 			background = new Sprite(graphics, backTex);
@@ -79,7 +77,7 @@ namespace StaticJump
 		public void Render()
 		{
 			background.Render ();
-			selector.Render ();
+//			selector.Render ();
 		}
 	}
 }
