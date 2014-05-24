@@ -38,6 +38,8 @@ namespace StaticJump
 		private static Texture2D bg1Tex; //background
 		private static Texture2D mg1Tex; //midground
 		private static Texture2D playerTex;
+		private static Texture2D jumpPowerBarTex;
+		private static Texture2D chargePowerBarTex;
 		
 		#endregion
 		
@@ -78,7 +80,8 @@ namespace StaticJump
 		
 		#region UI
 		
-		
+		private static PlayerAttribute playerJumpPowerBar;
+		private static PlayerAttribute playerChargePowerBar;
 		
 		#endregion
 		
@@ -125,6 +128,8 @@ namespace StaticJump
 			bg1Tex = new Texture2D("Application/Assets/background1.png", false);
 			mg1Tex = new Texture2D("Application/Assets/midground1.png", false);
 			playerTex = new Texture2D("Application/Assets/player_running_sheet.png", false);
+			jumpPowerBarTex = new Texture2D("Application/Assets/jumppower_attribute.png", false);
+			chargePowerBarTex = new Texture2D("Application/Assets/chargepower_attribute.png", false);
 		}
 		
 		private static void InitializeObjects()
@@ -136,6 +141,10 @@ namespace StaticJump
 			midground = new Background(graphics, mg1Tex, 0.4f);
 			player = new Player(graphics, new Vector3(platforms[1].Pos.X, platforms[1].Pos.Y - 40, 0), playerTex);
 			scoreLabel = new Scoreboard(graphics);
+			playerJumpPowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 + 20, graphics.Screen.Height - 40, 0), jumpPowerBarTex);
+			playerJumpPowerBar.SetAttributeBarColor(1.0f, 1.0f, 0.0f, 1.0f);
+			playerChargePowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 - 160, graphics.Screen.Height - 40, 0), chargePowerBarTex);
+			playerChargePowerBar.SetAttributeBarColor(0.0f, 1.0f, 1.0f, 1.0f);
 		}	
 		
 		private static void StartGame()
@@ -183,6 +192,8 @@ namespace StaticJump
 				plat.UpdatePos();
 			}
 			player.Update(deltaTime);
+			playerJumpPowerBar.UpdateAttribute(player.JumpPower, 1.0f);
+			playerChargePowerBar.UpdateAttribute(player.JumpPower, 5.0f);
 			UpdateDifficulty();
 			background.UpdateBackground();
 			midground.UpdateBackground();
@@ -383,6 +394,8 @@ namespace StaticJump
 				ter.Render();	
 			}
 			scoreLabel.Render();
+			playerJumpPowerBar.Render();
+			playerChargePowerBar.Render();
 			player.Render();
 			
 			// Present the screen
