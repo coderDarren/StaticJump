@@ -1,0 +1,57 @@
+using System;
+using System.Collections.Generic;
+using Sce.PlayStation.Core;
+using Sce.PlayStation.Core.Graphics;
+using Sce.PlayStation.Core.Imaging;
+using Sce.PlayStation.Core.Input;
+
+namespace StaticJump
+{
+	public class PlayerAttribute
+	{
+		private GraphicsContext graphics;
+		private Vector3 pos;
+		private Sprite att;
+		private ProgressBar attBar;
+		
+		public PlayerAttribute (GraphicsContext gc, Vector3 pos, Texture2D tex)
+		{
+			graphics = gc;
+			att = new Sprite(graphics, tex);
+			this.pos = pos;
+			att.Position = this.pos;
+			attBar = new ProgressBar(graphics, this.pos + new Vector3(10, 27, 0));
+		}
+		
+		public void UpdateAttribute(float attVal, float maxAttVal)
+		{
+			for (int i = 1; i < 21; i++)  //there will be 20 total bars, check in increments of a twentieth
+			{
+				//adding new bars
+				if (attVal > (maxAttVal / 20) * i)
+					if (attBar.BarsCount < i)
+						attBar.AddBar();
+				
+				//removing unwanted bars
+				if (attVal < (maxAttVal / 20) * i)
+					if (attBar.BarsCount > i)
+						attBar.RemoveBar();
+			}
+			
+			attBar.UpdateBars();
+			
+		}
+		
+		public void SetAttributeBarColor(float r, float g, float b, float a)
+		{
+			attBar.SetBarColor(r, g, b, a);	
+		}
+		
+		public void Render()
+		{
+			att.Render();
+			attBar.Render();
+		}
+		
+	}
+}
