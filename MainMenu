@@ -1,0 +1,86 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using Sce.PlayStation.Core;
+using Sce.PlayStation.Core.Environment;
+using Sce.PlayStation.Core.Graphics;
+using Sce.PlayStation.Core.Input;
+
+namespace StaticJump
+{
+	public class MainMenu
+	{
+		public enum MenuHighlights {StartGame, Controls, HighScores}
+		public MenuHighlights highlight;
+		private Sprite background;
+		private Sprite controls;
+		private Sprite selector;
+		private Vector3 selPos;
+		private GraphicsContext graphics;
+		
+		public MainMenu (GraphicsContext gc)
+		{
+			graphics = gc;
+			Texture2D backTex = new Texture2D("/Applications/Assets/background1.png",false);
+			Texture2D selectorTex = new Texture2D("/Applications/Assets/background1.png",false);
+			highlight = MenuHighlights.StartGame;
+			
+			background = new Sprite(graphics, backTex);
+			selector = new Sprite(graphics, selectorTex);
+			selector.Position = new Vector3 (0,0,0); 
+			
+		}
+		
+		public void Update()
+		{
+			var gpd = GamePad.GetData(0);
+			if(highlight == MenuHighlights.StartGame)
+			{
+				if((gpd.Buttons & GamePadButtons.Down) != 0)
+				{
+					selector.Position.Y += 20;
+					highlight = MenuHighlights.Controls;
+				}
+				if((gpd.Buttons & GamePadButtons.Up) != 0)
+				{
+					selector.Position.Y -= 20;
+					highlight = MenuHighlights.HighScores;
+				}
+			}
+			if(highlight == MenuHighlights.Controls)
+			{
+				if((gpd.Buttons & GamePadButtons.Down) != 0)
+				{
+					selector.Position.Y += 20;
+					highlight = MenuHighlights.HighScores;
+				}
+				if((gpd.Buttons & GamePadButtons.Up) != 0)
+				{
+					selector.Position.Y -= 20;
+					highlight = MenuHighlights.StartGame;
+				}
+			}
+			if(highlight == MenuHighlights.HighScores)
+			{
+				if((gpd.Buttons & GamePadButtons.Down) != 0)
+				{
+					selector.Position.Y += 20;
+					highlight = MenuHighlights.StartGame;
+				}
+				if((gpd.Buttons & GamePadButtons.Up) != 0)
+				{
+					selector.Position.Y -= 20;
+					highlight = MenuHighlights.Controls;
+				}
+			}
+			
+			
+		}
+		public void Render()
+		{
+			background.Render ();
+			selector.Render ();
+		}
+	}
+}
+
