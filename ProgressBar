@@ -1,0 +1,91 @@
+using System;
+using System.Collections.Generic;
+using Sce.PlayStation.Core;
+using Sce.PlayStation.Core.Graphics;
+using Sce.PlayStation.Core.Imaging;
+using Sce.PlayStation.Core.Input;
+
+namespace StaticJump
+{
+	public class ProgressBar
+	{
+		
+		private GraphicsContext graphics;
+		private Sprite bar;
+		private Texture2D barTex;
+		private Sprite glow;
+		private Texture2D glowTex;
+		private List<Sprite> bars;
+		private Vector3 pos;
+		
+		private float red;
+		private float blue;
+		private float green;
+		private float alpha;
+		
+		public ProgressBar (GraphicsContext gc, Vector3 pos)
+		{
+			graphics = gc;
+			bars = new List<Sprite>();
+			barTex = new Texture2D("Application/Assets/attribute_progress_bar.png", false);
+			glowTex = new Texture2D("Application/Assets/progress_bar_glow.png", false);
+			glow = new Sprite(graphics, glowTex);
+			glow.Center = new Vector2(0.5f, 0.5f);
+			glow.Position = pos;
+			glow.Position.Y++;
+			this.pos = pos; // used for the starting point of the bars
+			
+			red = 0.0f;
+			blue = 0.0f;
+			green = 0.0f;
+			alpha = 0.0f;
+		}
+		
+		
+		public int BarsCount
+		{
+			get { return bars.Count; }	
+		}
+		
+		public void AddBar()
+		{
+			bar = new Sprite(graphics, barTex);
+			bars.Add(bar);
+		}
+		
+		public void RemoveBar()
+		{
+			bars.RemoveAt(bars.Count-1); //Remove the last bar in the list	
+		}
+		
+		public void UpdateBars()
+		{
+			for (int i = 0; i <= bars.Count-1; i++)
+			{
+				bars[i].Position = pos + new Vector3(i * bars[i].Width, 0, 0);	
+			}
+			if (bars.Count >= 1)
+				glow.Position = bars[bars.Count-1].Position + new Vector3(10, 1,0);
+		}
+		
+		public void SetBarColor(float r, float g, float b, float a)
+		{
+			red = r;
+			green = g;
+			blue = b;
+			alpha = a;
+		}
+		
+		public void Render()
+		{
+			glow.SetColor(red, green, blue, alpha);
+			
+			foreach(Sprite b in bars)
+			{
+				b.SetColor(red, green, blue, alpha);
+				b.Render();
+			}
+			glow.Render();
+		}
+	}
+}
