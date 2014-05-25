@@ -20,6 +20,7 @@ namespace StaticJump
 		private static Random randGen;
 		private static int randCoordX;
 		private static int randCoordY;
+		private static int allowDifficultyIncrease;
 		
 		
 		#region Collections 
@@ -127,7 +128,7 @@ namespace StaticJump
 			//power1Tex = new Texture2D("Application/Assets/diamond.png", false);
 			bg1Tex = new Texture2D("Application/Assets/background1.png", false);
 			mg1Tex = new Texture2D("Application/Assets/midground1.png", false);
-			playerTex = new Texture2D("Application/Assets/player_running_sheet.png", false);
+			playerTex = new Texture2D("Application/Assets/player_anim_sheet.png", false);
 			jumpPowerBarTex = new Texture2D("Application/Assets/jumppower_attribute.png", false);
 			chargePowerBarTex = new Texture2D("Application/Assets/chargepower_attribute.png", false);
 		}
@@ -135,11 +136,13 @@ namespace StaticJump
 		private static void InitializeObjects()
 		{
 			//Initially spawn enough for a double wide screen
-			SpawnPlatforms(platform1Tex, totalPlatforms, 0, 100, graphics.Screen.Height - 100, (graphics.Screen.Width) / totalPlatforms);
-			SpawnPlatforms(platform1Tex, totalPlatforms-1, graphics.Screen.Width, 100, graphics.Screen.Height - 100, (graphics.Screen.Width) / (totalPlatforms-1));
+			SpawnPlatforms(platform1Tex, totalPlatforms, 0, 100, graphics.Screen.Height - 100, 
+			               (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
+			SpawnPlatforms(platform1Tex, totalPlatforms-1, graphics.Screen.Width + 56, 100, graphics.Screen.Height - 100, 
+			               (graphics.Screen.Width + graphics.Screen.Width / (totalPlatforms-1)) / (totalPlatforms-1));
 			background = new Background(graphics, bg1Tex, 0.2f);
 			midground = new Background(graphics, mg1Tex, 0.4f);
-			player = new Player(graphics, new Vector3(platforms[1].Pos.X, platforms[1].Pos.Y - 40, 0), playerTex);
+			player = new Player(graphics, new Vector3(platforms[3].Pos.X, platforms[3].Pos.Y - 40, 0), playerTex);
 			scoreLabel = new Scoreboard(graphics);
 			playerJumpPowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 + 20, graphics.Screen.Height - 40, 0), jumpPowerBarTex);
 			playerJumpPowerBar.SetAttributeBarColor(1.0f, 1.0f, 0.0f, 1.0f);
@@ -152,6 +155,7 @@ namespace StaticJump
 			restartTimer = 0;
 			totalPlatforms = 10;
 			difficultyCounter = 0;
+			allowDifficultyIncrease = 0;
 			
 			InitializeCollections();
 			InitializeTextures();
@@ -197,11 +201,13 @@ namespace StaticJump
 			UpdateDifficulty();
 			background.UpdateBackground();
 			midground.UpdateBackground();
+			
 			scoreLabel.UpdateScore(player.Score);
+			
 			CheckCollisions();
 			CheckForFallingPlatforms();
 			CheckForDeadObjects();
-			
+			Console.WriteLine(debug ? "Difficulty Increase Counter: " + allowDifficultyIncrease : null);
 			Console.WriteLine(debug ? "Platforms On Screen: " + totalPlatforms : null);
 		}
 		
@@ -213,7 +219,7 @@ namespace StaticJump
 			{
 				Console.WriteLine(debug ? "Platform Separation: " + minXDist : null);
 				randCoordY = randGen.Next(minY, maxY);
-				platform = new Platform(graphics, new Vector3((minX) + i * (minXDist), randCoordY, 0), tex, "platform");
+				platform = new Platform(graphics, new Vector3(minX + i * minXDist, randCoordY, 0), tex, "platform");
 				platforms.Add(platform);
 			}
 		}
@@ -224,11 +230,12 @@ namespace StaticJump
 			{
 				if (totalPlatforms > 4)
 				{
-					totalPlatforms--;
-					SpawnPlatforms(platform1Tex, totalPlatforms, graphics.Screen.Width, 100, graphics.Screen.Height - 50, (graphics.Screen.Width) / totalPlatforms);
+					totalPlatforms--;	
+					SpawnPlatforms(platform1Tex, totalPlatforms, graphics.Screen.Width, 100, graphics.Screen.Height - 50, (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
 				}
 				else //totalPlatforms needs to add 1 to conform with the range of the list in CheckForDeadObjects()
-					SpawnPlatforms(platform1Tex, totalPlatforms+1, graphics.Screen.Width, 100, graphics.Screen.Height - 100, (graphics.Screen.Width) / totalPlatforms);
+					SpawnPlatforms(platform1Tex, totalPlatforms+1, graphics.Screen.Width, 100, graphics.Screen.Height - 100, (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
+				
 				
 				difficultyCounter = 0;
 			}
@@ -240,7 +247,7 @@ namespace StaticJump
 			
 			foreach(Platform plat in platforms)
 			{
-				if (plat.ContainsPlayer &&
+				if (plat.WillFall &&
 				   (gamePadData.Buttons & GamePadButtons.Cross) == 0)
 				{
 					plat.currState = Platform.State.Crumbling;
@@ -266,10 +273,9 @@ namespace StaticJump
 			{
 				if (Collides(player.Extents, plat.Extents) == true)
 				{
-					plat.ContainsPlayer = true;
 					
 					if (player.Pos.Y + player.Extents.Height / 2 >= plat.Pos.Y && 
-					    player.Pos.Y + player.Extents.Height / 2 <= plat.Pos.Y + 10) // fall-through allowance
+					    player.Pos.Y + player.Extents.Height / 2 <= plat.Pos.Y + 5) // fall-through allowance
 					{
 						player.GroundedSpeed = plat.ScrollSpeed;
 						player.Grounded = true;
@@ -340,14 +346,9 @@ namespace StaticJump
 			if (platforms[totalPlatforms].Pos.X < -80)
 			{
 				for (int z = totalPlatforms; z >= 0; z--)
-					platforms[z].Alive = false;
-			}
-			
-			for (int i = platforms.Count - 1; i >= 0; i--)
-			{
-				if (platforms[i].Alive == false)
 				{
-					platforms.RemoveAt(i);
+					platforms[z].Alive = false;
+					platforms.RemoveAt(z);
 					difficultyCounter++;
 					Console.WriteLine(debug ? "Difficulty Counter: " +difficultyCounter : null);
 				}
