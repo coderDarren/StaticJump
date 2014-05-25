@@ -42,6 +42,7 @@ namespace StaticJump
 		private long jumpReleaseTimer; // used to determine how long ago the jump button was released
 		private long jumpTimer; // used to determine how long the player rises in the air after jumping
 		private long shootTimer; //used to allow the user to only shoot so many times per specified time
+		private long scoreTimer; //used to determine when to raise the score by 1;
 		
 		public Player (GraphicsContext gc, Vector3 pos, Texture2D tex)
 		{
@@ -68,6 +69,7 @@ namespace StaticJump
 			score = 0;
 			groundedSpeed = 0;
 			shootTimer = 0;
+			scoreTimer = 0;
 			
 			currState = PlayerState.Falling;
 			dir = Direction.Right;
@@ -148,6 +150,13 @@ namespace StaticJump
 			    currAnim != Animation.StationaryShoot)
 				activeFrame = 3;					//This will prevent the player from running in air
 			
+			scoreTimer += dt;
+			if (scoreTimer >= 250)
+			{
+				score++;
+				scoreTimer = 0;
+			}
+			
 			s.Position = Pos;
 			
 			Console.WriteLine(AppMain.debug ? "Grounded: " +grounded : null);
@@ -177,7 +186,6 @@ namespace StaticJump
 				dir = Direction.Right;
 				if (currAnim != Animation.StationaryShoot)
 					currAnim = Animation.Running;
-				score ++;
 			}
 			if ((gamePadData.Buttons & GamePadButtons.Cross) == 0)
 			{
