@@ -27,7 +27,7 @@ namespace StaticJump
 		public MainMenu (GraphicsContext gc)
 		{
 			graphics = gc;
-			Texture2D backTex = new Texture2D("/Application/Assets/StaticJumpPromotional.png",false);
+			Texture2D backTex = new Texture2D("/Application/Assets/main_menu.png",false);
 			Texture2D selectorTex = new Texture2D("/Application/Assets/player_projectile_sheet.png",false);
 			highlight = MenuHighlights.StartGame;
 			
@@ -39,7 +39,7 @@ namespace StaticJump
 			selector.Center = new Vector2(0.5f, 0.5f);
 			selector.Width = SELECTOR_SIZE;
 			selector.Height = SELECTOR_SIZE;
-			selPos = new Vector3(graphics.Screen.Width - 100, 100, 0);
+			selPos = new Vector3(graphics.Screen.Width - 200, 100, 0);
 			selector.Position = selPos;
 			
 		}
@@ -120,3 +120,4 @@ namespace StaticJump
 		}
 	}
 }
+
