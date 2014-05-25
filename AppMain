@@ -16,17 +16,18 @@ namespace StaticJump
 		private enum GameState { Menu, Playing, Paused };
 		private static GameState currState;
 		private static int totalPlatforms; //difficulty guage
-		
+		private static long shootTimer;
 		private static Random randGen;
 		private static int randCoordX;
 		private static int randCoordY;
-		private static int allowDifficultyIncrease;
+		private static bool deleted= false;
 		
 		
 		#region Collections 
 		
 		private static List<Platform> platforms;
 		private static List<Power> powers;
+		private static List<Projectile> projectiles;
 		
 		#endregion
 		
@@ -41,6 +42,7 @@ namespace StaticJump
 		private static Texture2D playerTex;
 		private static Texture2D jumpPowerBarTex;
 		private static Texture2D chargePowerBarTex;
+		private static Texture2D bulletTex;
 		
 		#endregion
 		
@@ -54,6 +56,8 @@ namespace StaticJump
 		private static Background midground;
 		private static Player player;
 		private static Scoreboard scoreLabel;
+		private static Projectile projectile;
+		private static int difficultyCounterAllowUp;
 		
 		#endregion
 		
@@ -98,6 +102,7 @@ namespace StaticJump
 				Render ();
 				stopTime = clock.ElapsedMilliseconds;
 				deltaTime = stopTime - startTime;
+				
 			}
 		}
 		
@@ -112,7 +117,6 @@ namespace StaticJump
 			randGen = new Random();
 			clock = new Stopwatch();
 			clock.Start();
-			
 			StartGame();
 		}
 		
@@ -120,6 +124,7 @@ namespace StaticJump
 		{
 			platforms = new List<Platform>();
 			powers = new List<Power>();
+			projectiles = new List<Projectile>();
 		}
 		
 		private static void InitializeTextures()
@@ -131,31 +136,31 @@ namespace StaticJump
 			playerTex = new Texture2D("Application/Assets/player_anim_sheet.png", false);
 			jumpPowerBarTex = new Texture2D("Application/Assets/jumppower_attribute.png", false);
 			chargePowerBarTex = new Texture2D("Application/Assets/chargepower_attribute.png", false);
+			bulletTex = new Texture2D("Application/Assets/Bullet2_sheet.png", false);
 		}
 		
 		private static void InitializeObjects()
 		{
 			//Initially spawn enough for a double wide screen
-			SpawnPlatforms(platform1Tex, totalPlatforms, 0, 100, graphics.Screen.Height - 100, 
-			               (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
-			SpawnPlatforms(platform1Tex, totalPlatforms-1, graphics.Screen.Width + 56, 100, graphics.Screen.Height - 100, 
-			               (graphics.Screen.Width + graphics.Screen.Width / (totalPlatforms-1)) / (totalPlatforms-1));
+			SpawnPlatforms(platform1Tex, totalPlatforms, 0, 100, graphics.Screen.Height - 100, (graphics.Screen.Width) / totalPlatforms);
+			SpawnPlatforms(platform1Tex, totalPlatforms-1, graphics.Screen.Width, 100, graphics.Screen.Height - 100, (graphics.Screen.Width) / (totalPlatforms-1));
 			background = new Background(graphics, bg1Tex, 0.2f);
 			midground = new Background(graphics, mg1Tex, 0.4f);
-			player = new Player(graphics, new Vector3(platforms[3].Pos.X, platforms[3].Pos.Y - 40, 0), playerTex);
+			player = new Player(graphics, new Vector3(platforms[1].Pos.X, platforms[1].Pos.Y - 40, 0), playerTex);
 			scoreLabel = new Scoreboard(graphics);
 			playerJumpPowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 + 20, graphics.Screen.Height - 40, 0), jumpPowerBarTex);
 			playerJumpPowerBar.SetAttributeBarColor(1.0f, 1.0f, 0.0f, 1.0f);
 			playerChargePowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 - 160, graphics.Screen.Height - 40, 0), chargePowerBarTex);
 			playerChargePowerBar.SetAttributeBarColor(0.0f, 1.0f, 1.0f, 1.0f);
-		}	
+			}	
 		
 		private static void StartGame()
 		{
 			restartTimer = 0;
 			totalPlatforms = 10;
 			difficultyCounter = 0;
-			allowDifficultyIncrease = 0;
+			shootTimer =0;
+			difficultyCounterAllowUp =0;
 			
 			InitializeCollections();
 			InitializeTextures();
@@ -198,6 +203,12 @@ namespace StaticJump
 			player.Update(deltaTime);
 			playerJumpPowerBar.UpdateAttribute(player.JumpPower, 1.0f);
 			playerChargePowerBar.UpdateAttribute(player.JumpPower, 5.0f);
+			UpdateProjectile();
+			foreach (Projectile proj in projectiles)
+			{
+				proj.Update(deltaTime);
+			}
+			
 			UpdateDifficulty();
 			background.UpdateBackground();
 			midground.UpdateBackground();
@@ -207,7 +218,7 @@ namespace StaticJump
 			CheckCollisions();
 			CheckForFallingPlatforms();
 			CheckForDeadObjects();
-			Console.WriteLine(debug ? "Difficulty Increase Counter: " + allowDifficultyIncrease : null);
+			
 			Console.WriteLine(debug ? "Platforms On Screen: " + totalPlatforms : null);
 		}
 		
@@ -219,25 +230,27 @@ namespace StaticJump
 			{
 				Console.WriteLine(debug ? "Platform Separation: " + minXDist : null);
 				randCoordY = randGen.Next(minY, maxY);
-				platform = new Platform(graphics, new Vector3(minX + i * minXDist, randCoordY, 0), tex, "platform");
+				platform = new Platform(graphics, new Vector3((minX) + i * (minXDist), randCoordY, 0), tex, "platform");
 				platforms.Add(platform);
 			}
 		}
 		
 		private static void UpdateDifficulty()
-		{			
+		{				Console.WriteLine(debug ? " difficulty allow Count: " + difficultyCounterAllowUp : null);
 			if (difficultyCounter / totalPlatforms == 1)
 			{
 				if (totalPlatforms > 4)
 				{
-					totalPlatforms--;	
-					SpawnPlatforms(platform1Tex, totalPlatforms, graphics.Screen.Width, 100, graphics.Screen.Height - 50, (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
+					totalPlatforms--;
+					difficultyCounter++;
+					SpawnPlatforms(platform1Tex, totalPlatforms, graphics.Screen.Width, 100, graphics.Screen.Height - 50, (graphics.Screen.Width) / totalPlatforms);
+							
+					
 				}
 				else //totalPlatforms needs to add 1 to conform with the range of the list in CheckForDeadObjects()
-					SpawnPlatforms(platform1Tex, totalPlatforms+1, graphics.Screen.Width, 100, graphics.Screen.Height - 100, (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
+				SpawnPlatforms(platform1Tex, totalPlatforms+1, graphics.Screen.Width, 100, graphics.Screen.Height - 100, (graphics.Screen.Width) / totalPlatforms);
 				
-				
-				difficultyCounter = 0;
+						difficultyCounter = 0;
 			}
 		}
 		
@@ -262,6 +275,21 @@ namespace StaticJump
 		
 		
 		
+		private static void UpdateProjectile()
+		{
+			var gamePadData = GamePad.GetData(0);
+			shootTimer += deltaTime;
+			
+			if ((gamePadData.Buttons & GamePadButtons.Square) != 0)
+			{
+				if (shootTimer > 500)
+				{
+				projectiles.Add(new Projectile (graphics, new Vector3(player.Pos.X, player.Pos.Y, 0), bulletTex));
+				shootTimer = 0;
+				}
+			}
+			Console.WriteLine(debug ? "Projectile Count: " +projectiles.Count : null);
+		}
 		
 		
 		
@@ -275,7 +303,7 @@ namespace StaticJump
 				{
 					
 					if (player.Pos.Y + player.Extents.Height / 2 >= plat.Pos.Y && 
-					    player.Pos.Y + player.Extents.Height / 2 <= plat.Pos.Y + 5) // fall-through allowance
+					    player.Pos.Y + player.Extents.Height / 2 <= plat.Pos.Y + 10) // fall-through allowance
 					{
 						player.GroundedSpeed = plat.ScrollSpeed;
 						player.Grounded = true;
@@ -296,6 +324,23 @@ namespace StaticJump
 			}
 		}
 		
+			private static void CheckBulletCollisions()
+			
+			
+		{	
+			foreach (Platform plat in platforms)
+			{
+			
+			foreach (Projectile proj in projectiles)
+				{
+				if (Collides(proj.Extents, plat.Extents) == true)
+				{
+					proj.Alive = false;
+								
+				}
+			 }
+		   }
+		}
 		//Made for player on platforms
 		private static bool Collides(Rectangle r1, Rectangle r2)
 		{
@@ -332,10 +377,10 @@ namespace StaticJump
 					restartTimer = 0;
 				}
 			}
+
 		}
 		
 		#endregion
-		
 		
 		
 		
@@ -343,16 +388,28 @@ namespace StaticJump
 		
 		private static void CheckForDeadObjects()
 		{
+			
 			if (platforms[totalPlatforms].Pos.X < -80)
 			{
 				for (int z = totalPlatforms; z >= 0; z--)
-				{
 					platforms[z].Alive = false;
-					platforms.RemoveAt(z);
-					difficultyCounter++;
+			}
+		
+			for (int i = platforms.Count - 1; i >= 0; i--)
+			{
+				
+				if (platforms[i].Alive == false)
+				{
+					platforms.RemoveAt(i);
+					
 					Console.WriteLine(debug ? "Difficulty Counter: " +difficultyCounter : null);
 				}
 			}
+		
+			
+		
+	
+	
 		}
 		
 		#endregion
@@ -398,7 +455,11 @@ namespace StaticJump
 			playerJumpPowerBar.Render();
 			playerChargePowerBar.Render();
 			player.Render();
-			
+			foreach (Projectile p in projectiles)
+			{
+				p.Render();	
+			}
+	
 			// Present the screen
 			graphics.SwapBuffers ();
 		}
