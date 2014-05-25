@@ -65,7 +65,7 @@ namespace StaticJump
 				bars[i].Position = pos + new Vector3(i * bars[i].Width, 0, 0);	
 			}
 			if (bars.Count >= 1)
-				glow.Position = bars[bars.Count-1].Position + new Vector3(10, 1,0);
+				glow.Position = bars[bars.Count-1].Position + new Vector3(10, 2,0);
 		}
 		
 		public void SetBarColor(float r, float g, float b, float a)
