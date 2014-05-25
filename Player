@@ -13,7 +13,7 @@ namespace StaticJump
 		public PlayerState currState;
 		private enum Direction { Right, Left };
 		private Direction dir;
-		public enum Animation { Running, Stationary, StationaryShoot, Boosting };
+		public enum Animation { Running, Stationary, StationaryShoot, JumpShoot, Boosting };
 		public Animation currAnim;
 		
 		private const float GRAVITY = 2.4f;
@@ -41,6 +41,7 @@ namespace StaticJump
 		private long jumpPowerTimer; // determines when to begin building jump power
 		private long jumpReleaseTimer; // used to determine how long ago the jump button was released
 		private long jumpTimer; // used to determine how long the player rises in the air after jumping
+		private long shootTimer; //used to allow the user to only shoot so many times per specified time
 		
 		public Player (GraphicsContext gc, Vector3 pos, Texture2D tex)
 		{
@@ -59,13 +60,14 @@ namespace StaticJump
 			jumpPowerTimer = 0;
 			jumpReleaseTimer = 45;
 			jumpTimer = 0;
-			jumpSpeed = 4.0f;
+			jumpSpeed = 6.2f;
 			speed = 4.0f;
 			weight = 0.2f;
 			activeFrame = 0;
 			animationTimer = 0;
 			score = 0;
 			groundedSpeed = 0;
+			shootTimer = 0;
 			
 			currState = PlayerState.Falling;
 			dir = Direction.Right;
@@ -131,7 +133,7 @@ namespace StaticJump
 			Move (dt);
 			RunAnimation(dt);
 			CheckShootInput(dt);
-			
+				
 			switch (currState)
 			{
 			case PlayerState.Stationary: UpdateStationary(); break;
@@ -141,13 +143,15 @@ namespace StaticJump
 			
 			if (currState != PlayerState.Jumping && !grounded)
 				currState = PlayerState.Falling;
-					
-			if (currState == PlayerState.Jumping || 
-			    currState == PlayerState.Falling)
-				activeFrame = 3;			//This will prevent the player from running in air
+			
+			if ((currState == PlayerState.Jumping || currState == PlayerState.Falling) && 
+			    currAnim != Animation.StationaryShoot)
+				activeFrame = 3;					//This will prevent the player from running in air
 			
 			s.Position = Pos;
+			
 			Console.WriteLine(AppMain.debug ? "Grounded: " +grounded : null);
+			Console.WriteLine(AppMain.debug ? "Player Animation: " +currAnim : null);
 		}
 		
 		
@@ -163,14 +167,16 @@ namespace StaticJump
 				//Move Left
 				Pos += new Vector3(-speed, 0, 0);
 				dir = Direction.Left;
-				currAnim = Animation.Running;
+				if (currAnim != Animation.StationaryShoot)
+					currAnim = Animation.Running;
 			}
 			if ((gamePadData.Buttons & GamePadButtons.Right) != 0)
 			{
 				//Move Right
 				Pos += new Vector3(speed, 0, 0);
 				dir = Direction.Right;
-				currAnim = Animation.Running;
+				if (currAnim != Animation.StationaryShoot)
+					currAnim = Animation.Running;
 				score ++;
 			}
 			if ((gamePadData.Buttons & GamePadButtons.Cross) == 0)
@@ -178,10 +184,10 @@ namespace StaticJump
 				//Jump
 				jumpPowerTimer = 0;
 				jumpReleaseTimer += dt;
-				if (jumpReleaseTimer <= 500)
+				if (jumpReleaseTimer <= 300)
 					currState = PlayerState.Jumping;
-					
-				if (currAnim != Animation.StationaryShoot)
+				
+				if (currAnim != Animation.StationaryShoot && currAnim != Animation.Running)
 					currAnim = Animation.Stationary;
 			}
 			if ((gamePadData.Buttons & GamePadButtons.Cross) != 0 && grounded)
@@ -199,7 +205,7 @@ namespace StaticJump
 				//Run boosting animation
 				if (jumpPower >= 0.5f)
 					currAnim = Animation.Boosting;
-					
+				
 				Console.WriteLine(AppMain.debug ? "Jump Power: " +jumpPower : null);
 			}
 			if ((gamePadData.Buttons & GamePadButtons.Left) == 0 &&
@@ -210,7 +216,7 @@ namespace StaticJump
 				currAnim = Animation.Stationary;
 				activeFrame = 5;
 			}
-		
+			
 		}
 		
 		private void CheckShootInput(long dt)
@@ -226,7 +232,12 @@ namespace StaticJump
 					//Run once per click
 					activeFrame = 0;
 					animationTimer = 0;
-					currAnim = Animation.StationaryShoot;
+					if (currState == PlayerState.Stationary)
+						currAnim = Animation.StationaryShoot;
+					if (currState == PlayerState.Falling)
+						currAnim = Animation.StationaryShoot;
+					if (currState == PlayerState.Jumping)
+						currAnim = Animation.StationaryShoot;
 					shootTimer = 0;
 				}
 			}
@@ -239,6 +250,7 @@ namespace StaticJump
 		
 		private void UpdateFalling()
 		{
+			
 			Console.WriteLine(AppMain.debug ? "Updating fall" : null);
 			
 			jumpPower =0; //reset to 0 since jump is completed
@@ -250,6 +262,7 @@ namespace StaticJump
 					fallAccelerator += 0.05f;
 				Pos += new Vector3(0, GRAVITY + (weight * 2) + fallAccelerator, 0);
 			}
+			
 		}
 		
 		private void UpdateJumping(long dt)
@@ -286,8 +299,9 @@ namespace StaticJump
 			switch (currAnim)
 			{
 			case Animation.Running: UpdateRunningAnim(dt, 6); break;
-			case Animation.StationaryShoot: UpdateStationaryShootAnim(dt, 6); break;
+			case Animation.StationaryShoot: UpdateJumpShootAnim(dt, 6); break;
 			case Animation.Boosting: UpdateRunningAnim(dt, 6); break;
+			case Animation.JumpShoot:  break;
 			}
 		}
 		
@@ -322,6 +336,26 @@ namespace StaticJump
 			
 		}
 		
+		private void UpdateJumpShootAnim(long dt, int frame_Num)
+		{
+			animationTimer+=dt;
+			if (animationTimer > FRAME_DURATION)
+			{
+				activeFrame++;
+				animationTimer = 0;
+				Console.WriteLine(AppMain.debug?"Active Frame: " +activeFrame:null);
+			}
+			
+			if (activeFrame >= frame_Num - 1)
+			{
+				activeFrame = 5;
+				animationTimer = 0;
+				currAnim = Animation.Stationary;
+			}
+			
+		}
+		
+		
 		#endregion
 		
 		
@@ -348,6 +382,7 @@ namespace StaticJump
 				                  ((int)dir + 4) * FRAME_HEIGHT,
 				                  ((activeFrame+1)*FRAME_WIDTH)-1,
 				                  ((int)dir + 5) * FRAME_HEIGHT );
+			
 				break;
 			}
 			
