@@ -22,7 +22,8 @@ namespace StaticJump
 
 		private const long FRAME_DURATION = 60;
 
-
+		private const int PROJECTILE_SIZE = 44;
+		
 		private int activeFrame;
 
 		private long animationTimer;
@@ -54,9 +55,13 @@ namespace StaticJump
 			s = new Sprite(graphics, tex);
 
 			s.Center = new Vector2(0.5f, 0.5f);
+			s.Scale = new Vector2(0.8f,0.8f);
 
 			s.Position.X = Xpos;
 			s.Position.Y = pos.Y;
+			
+			s.Width = PROJECTILE_SIZE;
+			s.Height = PROJECTILE_SIZE;
 
 	        activeFrame = 0;
 
@@ -132,21 +137,25 @@ namespace StaticJump
 		{
 			switch (currAnim)
 			{
-			case Animation.scrolling: UpdateShootAnim(dt, 0); break;
+			case Animation.scrolling: UpdateShootAnim(dt); break;
 			}
 		}
 
-		private void UpdateShootAnim(long dt, int frame_Num)
+		private void UpdateShootAnim(long dt)
 		{
 			animationTimer+=dt;
 			if (animationTimer > FRAME_DURATION)
 			{
-				activeFrame++;
+				activeFrame ++;
 				animationTimer = 0;
 			}
-			if (activeFrame > frame_Num-1)
+			
+			if (activeFrame > 2)
+			{
 				activeFrame = 0;
+			}	
 		}
+		
 
 		#endregion
 
@@ -158,10 +167,10 @@ namespace StaticJump
 			switch (currAnim)
 			{
 			case Animation.scrolling:
-//				s.SetTextureCoord(activeFrame * FRAME_WIDTH, 
-//				                  (int)dir * FRAME_HEIGHT,
-//				                  ((activeFrame+1)*FRAME_WIDTH)-1,
-//				                  ((int)dir + 1) * FRAME_HEIGHT );
+				s.SetTextureCoord(activeFrame * PROJECTILE_SIZE,
+			                      0,
+			                      ((activeFrame+1) * PROJECTILE_SIZE)-1,
+			                      PROJECTILE_SIZE);
 				break;
 			}
 
@@ -171,3 +180,4 @@ namespace StaticJump
 
 		}	
 	}
+
