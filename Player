@@ -11,8 +11,8 @@ namespace StaticJump
 	{
 		public enum PlayerState {Jumping, Falling, Stationary };
 		public PlayerState currState;
-		private enum Direction { Right, Left };
-		private Direction dir;
+		public enum Direction { Right, Left };
+		public Direction dir;
 		public enum Animation { Running, Stationary, StationaryShoot, Boosting };
 		public Animation currAnim;
 		
