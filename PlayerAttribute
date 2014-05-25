@@ -18,9 +18,10 @@ namespace StaticJump
 		{
 			graphics = gc;
 			att = new Sprite(graphics, tex);
+			att.Center = new Vector2(0.5f, 0);
 			this.pos = pos;
 			att.Position = this.pos;
-			attBar = new ProgressBar(graphics, this.pos + new Vector3(10, 27, 0));
+			attBar = new ProgressBar(graphics, this.pos + new Vector3(-att.Width / 2 + 10, 8, 0));
 		}
 		
 		public void UpdateAttribute(float attVal, float maxAttVal)
