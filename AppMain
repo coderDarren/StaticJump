@@ -40,8 +40,7 @@ namespace StaticJump
 		private static Texture2D bg1Tex; //background
 		private static Texture2D mg1Tex; //midground
 		private static Texture2D playerTex;
-		private static Texture2D jumpPowerBarTex;
-		private static Texture2D chargePowerBarTex;
+		private static Texture2D attributeBarTex;
 		private static Texture2D bulletTex;
 		
 		#endregion
@@ -141,8 +140,7 @@ namespace StaticJump
 			bg1Tex = new Texture2D("Application/Assets/background1.png", false);
 			mg1Tex = new Texture2D("Application/Assets/midground1.png", false);
 			playerTex = new Texture2D("Application/Assets/player_anim_sheet.png", false);
-			jumpPowerBarTex = new Texture2D("Application/Assets/jumppower_attribute.png", false);
-			chargePowerBarTex = new Texture2D("Application/Assets/chargepower_attribute.png", false);
+			attributeBarTex = new Texture2D("Application/Assets/attribute_bar.png", false);
 			bulletTex = new Texture2D("Application/Assets/player_projectile_sheet.png", false);
 		}
 		
@@ -158,9 +156,9 @@ namespace StaticJump
 			midground = new Background(graphics, mg1Tex, 0.4f);
 			player = new Player(graphics, new Vector3(platforms[3].Pos.X, platforms[3].Pos.Y - 40, 0), playerTex);
 			scoreLabel = new Scoreboard(graphics);
-			playerJumpPowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 + 20, graphics.Screen.Height - 40, 0), jumpPowerBarTex);
+			playerJumpPowerBar = new PlayerAttribute(graphics, new Vector3(130, graphics.Screen.Height - 40, 0), attributeBarTex);
 			playerJumpPowerBar.SetAttributeBarColor(1.0f, 1.0f, 0.0f, 1.0f);
-			playerChargePowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 - 160, graphics.Screen.Height - 40, 0), chargePowerBarTex);
+			playerChargePowerBar = new PlayerAttribute(graphics, new Vector3(130, graphics.Screen.Height - 20, 0), attributeBarTex);
 			playerChargePowerBar.SetAttributeBarColor(0.0f, 1.0f, 1.0f, 1.0f);
 		}	
 		
