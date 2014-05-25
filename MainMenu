@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Sce.PlayStation.Core;
 using Sce.PlayStation.Core.Environment;
 using Sce.PlayStation.Core.Graphics;
@@ -11,37 +12,51 @@ namespace StaticJump
 	{
 		public enum MenuHighlights {StartGame, Controls, HighScores}
 		public MenuHighlights highlight;
+		
+		private const int SELECTOR_SIZE = 44;
+		private const long FRAME_DURATION = 60;
+		private long animationTimer;
+		private int activeFrame;
+		
 		private Sprite background;
 		private Sprite controls;
 		private Sprite selector;
+		private Vector3 selPos;
 		private GraphicsContext graphics;
 		
 		public MainMenu (GraphicsContext gc)
 		{
 			graphics = gc;
 			Texture2D backTex = new Texture2D("/Application/Assets/StaticJumpPromotional.png",false);
-			Texture2D selectorTex = new Texture2D("/Application/Assets/background1.png",false);
+			Texture2D selectorTex = new Texture2D("/Application/Assets/player_projectile_sheet.png",false);
 			highlight = MenuHighlights.StartGame;
+			
+			activeFrame =0;
+			animationTimer =0;
 			
 			background = new Sprite(graphics, backTex);
 			selector = new Sprite(graphics, selectorTex);
-			selector.Position = new Vector3 (0,0,0); 
+			selector.Center = new Vector2(0.5f, 0.5f);
+			selector.Width = SELECTOR_SIZE;
+			selector.Height = SELECTOR_SIZE;
+			selPos = new Vector3(graphics.Screen.Width - 100, 100, 0);
+			selector.Position = selPos;
 			
 		}
 		
-		public void Update()
+		public void Update(long dt)
 		{
 			var gpd = GamePad.GetData(0);
 			if(highlight == MenuHighlights.StartGame)
 			{
 				if((gpd.Buttons & GamePadButtons.Down) != 0)
 				{
-					selector.Position.Y += 20;
+					selPos.Y += 20;
 					highlight = MenuHighlights.Controls;
 				}
 				if((gpd.Buttons & GamePadButtons.Up) != 0)
 				{
-					selector.Position.Y -= 20;
+					selPos.Y -= 20;
 					highlight = MenuHighlights.HighScores;
 				}
 			}
@@ -49,12 +64,12 @@ namespace StaticJump
 			{
 				if((gpd.Buttons & GamePadButtons.Down) != 0)
 				{
-					selector.Position.Y += 20;
+					selPos.Y += 20;
 					highlight = MenuHighlights.HighScores;
 				}
 				if((gpd.Buttons & GamePadButtons.Up) != 0)
 				{
-					selector.Position.Y -= 20;
+					selPos.Y -= 20;
 					highlight = MenuHighlights.StartGame;
 				}
 			}
@@ -62,23 +77,46 @@ namespace StaticJump
 			{
 				if((gpd.Buttons & GamePadButtons.Down) != 0)
 				{
-					selector.Position.Y += 20;
+					selPos.Y += 20;
 					highlight = MenuHighlights.StartGame;
 				}
 				if((gpd.Buttons & GamePadButtons.Up) != 0)
 				{
-					selector.Position.Y -= 20;
+					selPos.Y -= 20;
 					highlight = MenuHighlights.Controls;
 				}
 			}
 			
+			AnimateSelector(dt);
 			
+			selector.Position = selPos;
 		}
+		
+		public void AnimateSelector(long dt)
+		{
+			animationTimer+=dt;
+			if (animationTimer > FRAME_DURATION)
+			{
+				activeFrame ++;
+				animationTimer = 0;
+			}
+			
+			if (activeFrame > 2)
+			{
+				activeFrame = 0;
+			}	
+		}
+		
 		public void Render()
 		{
 			background.Render ();
-//			selector.Render ();
+			
+			selector.SetTextureCoord(activeFrame * SELECTOR_SIZE,
+			                         0,
+			                         ((activeFrame+1) * SELECTOR_SIZE)-1,
+			                         SELECTOR_SIZE);
+			
+			selector.Render ();
 		}
 	}
 }
-
