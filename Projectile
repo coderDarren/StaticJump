@@ -9,145 +9,125 @@ namespace StaticJump
 {
 	public class Projectile
 	{
-					
+
 	    public enum bulletState {launched, hit};
-			
+
 		public bulletState currState;
 
 		public enum Animation {scrolling , hitting};
-			
+
 		public Animation currAnim;
-		
+
 		private const float GRAVITY = 2.4f;
 
 		private const long FRAME_DURATION = 60;
-			
-			
+
+
 		private int activeFrame;
-		
+
 		private long animationTimer;
-		
+
 		private GraphicsContext graphics;
-		
+
 		private Vector3 pos;
-		
+
 		private Sprite s;
-		
+
 		private bool IsAlive;
-		
+
 		private float speed;
-		
+
 		private enum Direction { Right, Left };
-		
+
 		private Direction dir;
 		//private float weight; // something between 0 and 2.0f
 
-		private long shootTimer; //used to allow the user to only shoot so many times per specified time
-		
-			
-			
-			public Projectile (GraphicsContext gc, Vector3 pos, Texture2D tex)
+
+		public Projectile (GraphicsContext gc, Vector3 pos, Texture2D tex, int dir)
 		{
 			graphics = gc;
-			
+
 			float Xpos = pos.X + 0.1f;
 		    this.pos.Y = pos.Y;
 			this.pos.X = Xpos;
-			
+
 			s = new Sprite(graphics, tex);
-			
+
 			s.Center = new Vector2(0.5f, 0.5f);
-			
+
 			s.Position.X = Xpos;
 			s.Position.Y = pos.Y;
-		
-	        activeFrame = 0;
-		
-		    animationTimer = 0;
-	
-	    	IsAlive = true;
-		
-			speed = 6.0f;
-		
-		
 
-			shootTimer = 0; 
-		
+	        activeFrame = 0;
+
+		    animationTimer = 0;
+
+	    	IsAlive = true;
+
+			speed = 6.0f;
+
 			currAnim = Animation.scrolling;
-			
+
 			currState = bulletState.launched;
-			
-			dir = Direction.Right;
+
+			if (dir == 0)
+				this.dir = Direction.Right;
+			else
+				this.dir = Direction.Left;
 		}
-		
-		
+
+
 	     public Vector3 Pos
 		{
 			get { return pos; }
 			set { pos = value; }
 		}
-		
+
 		public bool Alive
 		{
 			 get { return IsAlive;}
 			 set { IsAlive = value;}
-			
+
 		}
-		
+
 		public Rectangle Extents
 		{
 			get { return new Rectangle(pos.X, pos.Y, s.Width, s.Height); }	
 		}
-		
+
 		#region Updating
-		
+
 		public void Update(long dt)
 		{
 			Move (dt);
 			RunAnimation(dt);
-			CheckShootInput(dt);
-				
-			
+
+
 			if (!IsAlive)
 					currState = bulletState.launched;
-			
+
 			s.Position = Pos;
-			
+
 			Console.WriteLine(AppMain.debug ? "hit: " + IsAlive : null);
 			Console.WriteLine(AppMain.debug ? "bullet Animation: " + currAnim : null);
 		}
-		
-			private void Move(long dt)
-			{
-				
-				Pos += new Vector3(speed, 0, 0);
-		
-				currAnim = Animation.scrolling;
-				
-			}
-			
-		
-		private void CheckShootInput(long dt)
+
+		private void Move(long dt)
 		{
-			var gamePadData = GamePad.GetData(0);
-			
-			shootTimer += dt;
-			
-			if (shootTimer > 500)
-			{
-				
-					//Shooting animation
-					//Run once per click
-					activeFrame = 0;
-					animationTimer = 0;
-					currAnim = Animation.scrolling;
-					shootTimer = 0;
-				
-			}
+			if (dir == Direction.Right)
+				Pos += new Vector3(speed, 0, 0);
+			else 
+				Pos += new Vector3(-speed, 0, 0);
+
+				currAnim = Animation.scrolling;
+
 		}
+
+
+		
 		#endregion	
 		#region Animation
-		
+
 		private void RunAnimation(long dt)
 		{
 			switch (currAnim)
@@ -155,7 +135,7 @@ namespace StaticJump
 			case Animation.scrolling: UpdateShootAnim(dt, 0); break;
 			}
 		}
-		
+
 		private void UpdateShootAnim(long dt, int frame_Num)
 		{
 			animationTimer+=dt;
@@ -167,12 +147,12 @@ namespace StaticJump
 			if (activeFrame > frame_Num-1)
 				activeFrame = 0;
 		}
-		
+
 		#endregion
-		
+
 		#region Render
-		
-		
+
+
 		public void Render()
 		{
 			switch (currAnim)
@@ -184,12 +164,10 @@ namespace StaticJump
 //				                  ((int)dir + 1) * FRAME_HEIGHT );
 				break;
 			}
-			
+
 			s.Render();	
 		}
 		#endregion
-		
+
 		}	
 	}
-
-
