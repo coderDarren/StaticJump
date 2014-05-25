@@ -13,7 +13,7 @@ namespace StaticJump
 		public PlayerState currState;
 		private enum Direction { Right, Left };
 		private Direction dir;
-		public enum Animation { Running, Stationary, StationaryShoot, JumpShoot, Boosting };
+		public enum Animation { Running, Stationary, StationaryShoot, Boosting };
 		public Animation currAnim;
 		
 		private const float GRAVITY = 2.4f;
@@ -299,9 +299,8 @@ namespace StaticJump
 			switch (currAnim)
 			{
 			case Animation.Running: UpdateRunningAnim(dt, 6); break;
-			case Animation.StationaryShoot: UpdateJumpShootAnim(dt, 6); break;
+			case Animation.StationaryShoot: UpdateStationaryShootAnim(dt, 6); break;
 			case Animation.Boosting: UpdateRunningAnim(dt, 6); break;
-			case Animation.JumpShoot:  break;
 			}
 		}
 		
@@ -328,25 +327,6 @@ namespace StaticJump
 			}
 			
 			if (activeFrame > frame_Num-1)
-			{
-				activeFrame = 5;
-				animationTimer = 0;
-				currAnim = Animation.Stationary;
-			}
-			
-		}
-		
-		private void UpdateJumpShootAnim(long dt, int frame_Num)
-		{
-			animationTimer+=dt;
-			if (animationTimer > FRAME_DURATION)
-			{
-				activeFrame++;
-				animationTimer = 0;
-				Console.WriteLine(AppMain.debug?"Active Frame: " +activeFrame:null);
-			}
-			
-			if (activeFrame >= frame_Num - 1)
 			{
 				activeFrame = 5;
 				animationTimer = 0;
