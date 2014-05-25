@@ -324,14 +324,15 @@ namespace StaticJump
 						//set platform state to will fall
 						if (player.JumpPower >= 0.9f)
 							plat.WillFall = true;
-						else 
-							plat.WillFall = false;
 						
 						break;
 					}
 				}
 				else
 				{
+					if (player.JumpPower < 0.9f)
+						plat.WillFall = false;   //When the player falls off the platform at full power, the last platform he was on will not fall
+					
 					player.Grounded = false;
 				}
 			}
