@@ -23,9 +23,9 @@ namespace StaticJump
 			
 			score.Width = 200;
 			score.HorizontalAlignment = HorizontalAlignment.Center;
-			score.Y = 0;
-			score.X = graphics.Screen.Width / 2 - score.Width / 2;
-			score.Font = new UIFont(FontAlias.System, 32, FontStyle.Bold);
+			score.Y = graphics.Screen.Height - score.Height;
+			score.X = graphics.Screen.Width / 2 - score.Width /2;
+			score.Font = new UIFont("Application/Fonts/Baveuse.ttf", 32, FontStyle.Regular);
 			score.Text = "0";
 			
 			scene.RootWidget.AddChildLast(score);
