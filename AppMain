@@ -1,3 +1,7 @@
+//Credits
+//Sounds
+//	SweetNeo85 - "Wilhelm Scream" @ freesound.org
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -5,6 +9,7 @@ using Sce.PlayStation.Core;
 using Sce.PlayStation.Core.Environment;
 using Sce.PlayStation.Core.Graphics;
 using Sce.PlayStation.Core.Input;
+using Sce.PlayStation.Core.Audio;
 
 namespace StaticJump
 {
@@ -22,6 +27,14 @@ namespace StaticJump
 		private static int randCoordY;
 		private static int allowDifficultyIncrease;
 		
+		#region Sounds 
+		
+		private static SoundPlayer screamSP;
+		
+		#endregion
+		
+		
+		
 		
 		#region Collections 
 		
@@ -36,6 +49,7 @@ namespace StaticJump
 		#region Textures
 		
 		private static Texture2D platform1Tex;
+		private static Texture2D platform1CrumbleTex;
 		private static Texture2D power1Tex;
 		private static Texture2D bg1Tex; //background
 		private static Texture2D mg1Tex; //midground
@@ -74,7 +88,8 @@ namespace StaticJump
 		private static long stopTime;
 		private static long deltaTime;
 		private static long restartTimer; //used for only allowing one restart within some time
-		private static long shootTimer;
+		private static long shootTimer; // used to determine how often the player can shoot
+		private static long screamTimer; //used to only allow the screamSP to play once
 		
 		#endregion
 		
@@ -123,6 +138,11 @@ namespace StaticJump
 			clock.Start();
 			mainMenu = new MainMenu(graphics);
 			
+			Sound scream;
+			scream = new Sound("Application/Sounds/wilhelm_scream.wav");
+			screamSP = scream.CreatePlayer();
+			screamSP.Volume = 0.5f;
+			
 			currState = GameState.Menu;
 		}
 		
@@ -142,6 +162,7 @@ namespace StaticJump
 			playerTex = new Texture2D("Application/Assets/player_anim_sheet.png", false);
 			attributeBarTex = new Texture2D("Application/Assets/attribute_bar.png", false);
 			bulletTex = new Texture2D("Application/Assets/player_projectile_sheet.png", false);
+			platform1CrumbleTex = new Texture2D("Application/Assets/platform1crumble.png",false);
 		}
 		
 		private static void InitializeObjects()
@@ -166,6 +187,7 @@ namespace StaticJump
 		{
 			restartTimer = 0;
 			shootTimer = 0;
+			screamTimer = 0;
 			totalPlatforms = 12;
 			difficultyCounter = 0;
 			allowDifficultyIncrease = 0;
@@ -225,6 +247,13 @@ namespace StaticJump
 			
 			scoreLabel.UpdateScore(player.Score);
 			
+			if (player.Pos.Y > graphics.Screen.Height)
+			{
+				screamTimer += deltaTime;
+				if (screamTimer < 50)
+					screamSP.Play();
+			}
+			
 			CheckCollisions();
 			CheckForFallingPlatforms();
 			CheckForDeadObjects();
@@ -273,6 +302,7 @@ namespace StaticJump
 				if (plat.WillFall &&
 				   (gamePadData.Buttons & GamePadButtons.Cross) == 0)
 				{
+					plat.ChangeTexture(platform1CrumbleTex);
 					plat.currState = Platform.State.Crumbling;
 				}
 			}
@@ -310,7 +340,7 @@ namespace StaticJump
 		{			
 			foreach (Platform plat in platforms)
 			{
-				if (Collides(player.Extents, plat.Extents) == true)
+				if (Collides(player.Extents, plat.Extents) == true && plat.currState != Platform.State.Crumbling) // dont want to be able to jump on a platform in crumbling state
 				{
 					
 					if (player.Pos.Y + player.Extents.Height / 2 >= plat.Pos.Y && 
