@@ -11,7 +11,7 @@ namespace StaticJump
 		private GraphicsContext graphics;
 		public enum State { Solid, Crumbling, Falling, Fading } 
 		public State currState;
-		private const float FALL_SPEED = 1.2f;
+		private const float FALL_SPEED = 2.8f;
 		private bool willFall;
 		private float stickiness;
 		private Sprite t;
@@ -21,10 +21,9 @@ namespace StaticJump
 		{
 			graphics = gc;
 			t = new Sprite(gc, tex);
-			t.Center = new Vector2(0f, 0f);
 			t.Position = pos;
 			stickiness = 5.0f; 
-			this.scroll_speed = 0.8f;
+			this.scroll_speed = 0.99f;
 			willFall = false;
 			Console.WriteLine(AppMain.debug ? "Platform Scroll Speed: " + scroll_speed : null);
 		}
@@ -73,6 +72,14 @@ namespace StaticJump
 		private void UpdateCrumbling()
 		{
 			Pos += new Vector3(0, FALL_SPEED, 0);
+		}
+		
+		public void ChangeTexture(Texture2D tex)
+		{
+			willFall = false;
+			t = new Sprite(graphics, tex);	
+			Pos += new Vector3(-10, 0,0);
+			t.Position = Pos;
 		}
 				
 		public void RunAI() {}
