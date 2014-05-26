@@ -8,10 +8,28 @@ namespace StaticJump
 {
 	public class Power : GameObject
 	{
-		private const float SCROLL_SPEED = 5;
+		public enum State { Solid, Exploded };
+		public State currState;
+		private float scroll_speed;
 		
-		public Power (GraphicsContext gc, Vector3 pos, Texture2D tex, string id) : base(gc, pos, tex, id)
+		public Power (GraphicsContext gc, Vector3 pos, Texture2D tex, string id, float scroll_speed) : base(gc, pos, tex, id)
+		{ 
+			this.scroll_speed = scroll_speed; 
+			currState = State.Solid;
+		} //scroll speed passed by whatever platform a power box spawns on
+		
+		public void UpdateSolid(ref Sprite s)
+		{} // move the sprite left with scroll_speed 
+		
+		public void UpdateExploded(ref Sprite s)
+		{} // fade out the texture //continue moving the sprite left
+		
+		public virtual void Explode()
+		{}//replace sprite with exploding tex //currstate will be set to exploded
+		
+		public void Render(Sprite s)
 		{
+			s.Render();
 		}
 	}
 }
