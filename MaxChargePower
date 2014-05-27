@@ -8,32 +8,93 @@ namespace StaticJump
 {
 	public class MaxChargePower : Power
 	{
+		private const int FRAME_SIZE = 52;
+		private const int EXPLODE_FRAME_SIZE = 125;
+		private int activeFrame;
+		private long animationTimer;
+		private float alpha; //used to fade the power after it is exploded
+		
 		//Remember this class ultimately borrows from gamecomponent so update sprites position based on its property Pos defined in gamecomponent
+		private GraphicsContext graphics;
 		private Sprite pow;
-		private Texture2D explodeTex; //this should be passed to the sprite in the virtual void method Explode
-		
+		private Sprite explosion;
+		private Texture2D explodeTex; 
+			
 		public MaxChargePower (GraphicsContext gc, Vector3 pos, Texture2D tex, string id, float scroll_speed) : base (gc, pos, tex, id, scroll_speed)
-		{ } //Create sprite, set center to 0.5f, 0.5f, set position to pos
+		{
+			graphics = gc; //need to store gc in a variable for use in creating a new sprite upon explosion
+			
+			pow = new Sprite(gc, tex);
+			Pos = pos;
+			pow.Position = Pos;
+			pow.Center = new Vector2(0.5f, 0.5f);
+			pow.Scale = new Vector2(0.85f, 0.85f);
+			pow.Width = FRAME_SIZE;
+			pow.Height = FRAME_SIZE;
+			
+			explodeTex = new Texture2D("Application/Assets/pow1box_explosion_sheet.png", false);
+			
+			activeFrame = 0;
+			animationTimer = 0;
+		} //Create sprite, set center to 0.5f, 0.5f, set position to pos
 		
-		public void Update()
+		public override Rectangle Extents 
+		{
+			get { return new Rectangle(Pos.X, Pos.Y, pow.Width, pow.Height); }
+		}
+		
+		public override void Update(long dt)
 		{
 			switch (currState)
 			{
-			case State.Solid: UpdateSolid(ref pow); break;
-			case State.Exploded: UpdateExploded(ref pow); break;
+			case State.Solid: 
+				UpdateSolid(); 
+				Animate(dt, ref animationTimer, 11, ref activeFrame);
+				break;
+			case State.Exploded: 
+				UpdateExploded(ref pow);
+				Animate(dt, ref animationTimer, 2, ref activeFrame);
+				break;
 			}
 			
+			base.Update(dt);
 			pow.Position = Pos;
 		}
 		
 		public override void Explode()
 		{
+			WillExplode = false;
+			pow = new Sprite(graphics, explodeTex);
+			pow.Center = new Vector2(0.5f, 0.5f);
+			pow.Scale = new Vector2(0.85f, 0.85f);
+			pow.Width = EXPLODE_FRAME_SIZE;
+			pow.Height = EXPLODE_FRAME_SIZE;
+			pow.Position = Pos;
+			
+			activeFrame = 0;
+			
 			base.Explode();
 		}
 		
-		public void Render()
+		public override void Render()
 		{
-			Render(pow);	
+			if (currState == Power.State.Solid)
+			{
+				pow.SetTextureCoord(activeFrame * FRAME_SIZE,
+				                    0,
+				                    ((activeFrame+1) * FRAME_SIZE)-1,
+				                    FRAME_SIZE);
+			}
+			else
+			{
+				pow.SetTextureCoord(activeFrame * EXPLODE_FRAME_SIZE,
+				                    0,
+				                    ((activeFrame+1) * EXPLODE_FRAME_SIZE)-1,
+				                    EXPLODE_FRAME_SIZE);
+			}
+			
+			if (Alive)
+				pow.Render();
 		}
 	}
 }
