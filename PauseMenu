@@ -1,0 +1,148 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using Sce.PlayStation.Core;
+using Sce.PlayStation.Core.Environment;
+using Sce.PlayStation.Core.Graphics;
+using Sce.PlayStation.Core.Input;
+
+namespace StaticJump
+{
+	public class PauseMenu
+	{
+		public enum pauseMenuHighlights {Resume, Restart,ControlsSelected, Menu}
+		public pauseMenuHighlights pauseMenuState;
+		
+		private const int SELECTOR_SIZE = 44;
+		private const long FRAME_DURATION = 60;
+		private long animationTimer;
+		private long selectorTimer;
+		private int activeFrame;
+		
+		private Sprite background;
+		private Sprite controls;
+		private Sprite selector;
+		private Vector3 selPos;
+		private GraphicsContext graphics;
+		
+		public PauseMenu (GraphicsContext gc)
+		{
+			graphics = gc;
+			Texture2D backTex = new Texture2D("/Application/Assets/pause_menu.png",false);
+			Texture2D selectorTex = new Texture2D("/Application/Assets/player_projectile_sheet.png",false);
+			pauseMenuState = pauseMenuHighlights.Resume;
+			
+			activeFrame =0;
+			animationTimer =0;
+			selectorTimer = 0;
+			
+			background = new Sprite(graphics, backTex);
+			controls = new Sprite(graphics, selectorTex);
+			selector = new Sprite(graphics, selectorTex);
+			selector.Center = new Vector2(0.5f, 0.5f);
+			selector.Width = SELECTOR_SIZE;
+			selector.Height = SELECTOR_SIZE;
+			selPos = new Vector3(graphics.Screen.Width - 220, 82, 0);
+			selector.Position = selPos;
+			
+		}
+		
+		public void Update(long dt)
+		{   
+			AnimateSelector(dt);
+			selectorTimer += dt;
+			var gpd = GamePad.GetData(0);
+			
+			if(selectorTimer >= 100)
+			{
+			if(pauseMenuState == pauseMenuHighlights.Resume)
+			{
+				selectorTimer = 0;
+				if((gpd.Buttons & GamePadButtons.Down) != 0)
+				{
+					selPos.Y = 119; 	
+					pauseMenuState = pauseMenuHighlights.Restart;
+				}
+				if((gpd.Buttons & GamePadButtons.Up) != 0)
+				{
+					selPos.Y = 156; 
+					pauseMenuState = pauseMenuHighlights.Menu;
+				}
+			}
+				
+			else if(pauseMenuState == pauseMenuHighlights.Restart)
+			{
+				selectorTimer = 0;
+				if ((gpd.Buttons & GamePadButtons.Select) != 0)
+					{
+					pauseMenuState = pauseMenuHighlights.ControlsSelected;
+					}
+				if((gpd.Buttons & GamePadButtons.Down) != 0)
+				{
+					selPos.Y = 156;	
+					pauseMenuState = pauseMenuHighlights.Menu;
+				}
+				if((gpd.Buttons & GamePadButtons.Up) != 0)
+				{
+					selPos.Y = 81; 
+					pauseMenuState = pauseMenuHighlights.Resume;
+				}
+			}
+			else if(pauseMenuState == pauseMenuHighlights.Menu)
+			{
+				selectorTimer = 0;
+				if((gpd.Buttons & GamePadButtons.Down) != 0)
+				{
+					selPos.Y = 81;
+					pauseMenuState = pauseMenuHighlights.Resume;
+				}
+				if((gpd.Buttons & GamePadButtons.Up) != 0)
+				{
+					selPos.Y = 119;	selector.Position = selPos;
+					pauseMenuState = pauseMenuHighlights.Restart;	
+				}
+			}
+			selector.Position = selPos;
+		}
+		}
+		
+		
+		public void AnimateSelector(long dt)
+		{
+			animationTimer+=dt;
+			if (animationTimer > FRAME_DURATION)
+			{
+				activeFrame ++;
+				animationTimer = 0;
+			}
+			
+			if (activeFrame > 2)
+			{
+				activeFrame = 0;
+			}	
+		}
+		
+		public void Render()
+		{
+			if(pauseMenuState == pauseMenuHighlights.ControlsSelected)
+			{
+			controls.Render ();
+			}
+			
+			else 
+//			if(pauseMenuState == pauseMenuHighlights.Resume)
+			{
+			background.Render ();
+			
+			selector.SetTextureCoord(activeFrame * SELECTOR_SIZE,
+			                         0,
+			                         ((activeFrame+1) * SELECTOR_SIZE)-1,
+			                         SELECTOR_SIZE);
+			
+			selector.Render ();
+			}
+			
+		}
+	}
+}
+
