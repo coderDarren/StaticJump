@@ -10,12 +10,13 @@ namespace StaticJump
 {
 	public class MainMenu
 	{
-		public enum MenuHighlights {StartGame, Controls, HighScores}
-		public MenuHighlights highlight;
+		public enum MenuHighlights {StartGame, Controls,ControlsSelected, HighScores}
+		public MenuHighlights menuState;
 		
 		private const int SELECTOR_SIZE = 44;
 		private const long FRAME_DURATION = 60;
 		private long animationTimer;
+		private long selectorTimer;
 		private int activeFrame;
 		
 		private Sprite background;
@@ -29,68 +30,82 @@ namespace StaticJump
 			graphics = gc;
 			Texture2D backTex = new Texture2D("/Application/Assets/main_menu.png",false);
 			Texture2D selectorTex = new Texture2D("/Application/Assets/player_projectile_sheet.png",false);
-			highlight = MenuHighlights.StartGame;
+			menuState = MenuHighlights.StartGame;
 			
 			activeFrame =0;
 			animationTimer =0;
+			selectorTimer = 0;
 			
 			background = new Sprite(graphics, backTex);
+			controls = new Sprite(graphics, selectorTex);
 			selector = new Sprite(graphics, selectorTex);
 			selector.Center = new Vector2(0.5f, 0.5f);
 			selector.Width = SELECTOR_SIZE;
 			selector.Height = SELECTOR_SIZE;
-			selPos = new Vector3(graphics.Screen.Width - 200, 100, 0);
+			selPos = new Vector3(graphics.Screen.Width - 220, 82, 0);
 			selector.Position = selPos;
 			
 		}
 		
 		public void Update(long dt)
-		{
-			var gpd = GamePad.GetData(0);
-			if(highlight == MenuHighlights.StartGame)
-			{
-				if((gpd.Buttons & GamePadButtons.Down) != 0)
-				{
-					selPos.Y += 20;
-					highlight = MenuHighlights.Controls;
-				}
-				if((gpd.Buttons & GamePadButtons.Up) != 0)
-				{
-					selPos.Y -= 20;
-					highlight = MenuHighlights.HighScores;
-				}
-			}
-			if(highlight == MenuHighlights.Controls)
-			{
-				if((gpd.Buttons & GamePadButtons.Down) != 0)
-				{
-					selPos.Y += 20;
-					highlight = MenuHighlights.HighScores;
-				}
-				if((gpd.Buttons & GamePadButtons.Up) != 0)
-				{
-					selPos.Y -= 20;
-					highlight = MenuHighlights.StartGame;
-				}
-			}
-			if(highlight == MenuHighlights.HighScores)
-			{
-				if((gpd.Buttons & GamePadButtons.Down) != 0)
-				{
-					selPos.Y += 20;
-					highlight = MenuHighlights.StartGame;
-				}
-				if((gpd.Buttons & GamePadButtons.Up) != 0)
-				{
-					selPos.Y -= 20;
-					highlight = MenuHighlights.Controls;
-				}
-			}
-			
+		{   
 			AnimateSelector(dt);
+			selectorTimer += dt;
+			var gpd = GamePad.GetData(0);
 			
+			if(selectorTimer >= 100)
+			{
+			if(menuState == MenuHighlights.StartGame)
+			{
+				selectorTimer = 0;
+				if((gpd.Buttons & GamePadButtons.Down) != 0)
+				{
+					selPos.Y = 119; 	
+					menuState = MenuHighlights.Controls;
+				}
+				if((gpd.Buttons & GamePadButtons.Up) != 0)
+				{
+					selPos.Y = 156; 
+					menuState = MenuHighlights.HighScores;
+				}
+			}
+				
+			else if(menuState == MenuHighlights.Controls)
+			{
+				selectorTimer = 0;
+				if ((gpd.Buttons & GamePadButtons.Select) != 0)
+					{
+					menuState = MenuHighlights.ControlsSelected;
+					}
+				if((gpd.Buttons & GamePadButtons.Down) != 0)
+				{
+					selPos.Y = 156;	
+					menuState = MenuHighlights.HighScores;
+				}
+				if((gpd.Buttons & GamePadButtons.Up) != 0)
+				{
+					selPos.Y = 81; 
+					menuState = MenuHighlights.StartGame;
+				}
+			}
+			else if(menuState == MenuHighlights.HighScores)
+			{
+				selectorTimer = 0;
+				if((gpd.Buttons & GamePadButtons.Down) != 0)
+				{
+					selPos.Y = 81;
+					menuState = MenuHighlights.StartGame;
+				}
+				if((gpd.Buttons & GamePadButtons.Up) != 0)
+				{
+					selPos.Y = 119;	selector.Position = selPos;
+					menuState = MenuHighlights.Controls;	
+				}
+			}
 			selector.Position = selPos;
 		}
+		}
+		
 		
 		public void AnimateSelector(long dt)
 		{
@@ -109,6 +124,14 @@ namespace StaticJump
 		
 		public void Render()
 		{
+			if(menuState == MenuHighlights.ControlsSelected)
+			{
+			controls.Render ();
+			}
+			
+			else 
+//			if(menuState == MenuHighlights.StartGame)
+			{
 			background.Render ();
 			
 			selector.SetTextureCoord(activeFrame * SELECTOR_SIZE,
@@ -117,6 +140,8 @@ namespace StaticJump
 			                         SELECTOR_SIZE);
 			
 			selector.Render ();
+			}
+			
 		}
 	}
 }
