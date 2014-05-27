@@ -56,6 +56,8 @@ namespace StaticJump
 		private static Texture2D playerTex;
 		private static Texture2D attributeBarTex;
 		private static Texture2D bulletTex;
+		private static Texture2D enemyTex;
+		private static Texture2D powBox1Tex;
 		
 		#endregion
 		
@@ -76,7 +78,7 @@ namespace StaticJump
 		private static Background midground;
 		private static Player player;
 		private static Scoreboard scoreLabel;
-		private static Projectile projectile;
+		private static MaxChargePower pow1;
 		
 		#endregion
 		
@@ -164,6 +166,7 @@ namespace StaticJump
 			attributeBarTex = new Texture2D("Application/Assets/attribute_bar.png", false);
 			bulletTex = new Texture2D("Application/Assets/player_projectile_sheet.png", false);
 			platform1CrumbleTex = new Texture2D("Application/Assets/platform1crumble.png",false);
+			powBox1Tex = new Texture2D("Application/Assets/power_box1_sheet.png", false);
 		}
 		
 		private static void InitializeObjects()
@@ -176,16 +179,25 @@ namespace StaticJump
 
 			background = new Background(graphics, bg1Tex, 0.2f);
 			midground = new Background(graphics, mg1Tex, 0.4f);
-			player = new Player(graphics, new Vector3(platforms[3].Pos.X, platforms[3].Pos.Y - 40, 0), playerTex);
+			player = new Player(graphics, new Vector3(platforms[3].Pos.X, platforms[3].Pos.Y - 80, 0), playerTex);
 			scoreLabel = new Scoreboard(graphics);
 			playerJumpPowerBar = new PlayerAttribute(graphics, new Vector3(130, graphics.Screen.Height - 40, 0), attributeBarTex);
 			playerJumpPowerBar.SetAttributeBarColor(1.0f, 1.0f, 0.0f, 1.0f);
 			playerChargePowerBar = new PlayerAttribute(graphics, new Vector3(130, graphics.Screen.Height - 20, 0), attributeBarTex);
 			playerChargePowerBar.SetAttributeBarColor(0.0f, 1.0f, 1.0f, 1.0f);
+			
+	
+			for (int i = 1; i < platforms.Count - 1; i++)
+			{
+				pow1 = new MaxChargePower(graphics, new Vector3(platforms[i].Pos.X + 6, platforms[i].Pos.Y - platforms[i].Extents.Height, 0), powBox1Tex, "power1", platforms[1].ScrollSpeed);
+				powers.Add(pow1);
+			}
 		}	
 		
 		private static void StartGame()
 		{
+			GC.Collect(); //Be sure all memory is deallocated before allocating more
+			
 			unpauseTimer = 0;
 			shootTimer = 0;
 			screamTimer = 0;
@@ -213,11 +225,10 @@ namespace StaticJump
 			
 			switch (currState)
 			{
-			case GameState.Menu: UpdateMenu();  break;	
+			case GameState.Menu: UpdateMenu(); break;	
 			case GameState.Playing: UpdatePlaying(); break;
 			case GameState.Paused: UpdatePaused(); break;
 			}
-			
 		}
 		
 		private static void UpdateMenu()
@@ -225,7 +236,6 @@ namespace StaticJump
 			mainMenu.Update(deltaTime);
 			CheckMenuInput();
 		}
-		
 		
 		private static void UpdatePlaying()
 		{
@@ -242,29 +252,33 @@ namespace StaticJump
 			{
 				proj.Update(deltaTime);
 			}
+			foreach (Power pow in powers)
+			{
+				pow.Update(deltaTime);	
+			}
 			UpdateDifficulty();
 			background.UpdateBackground();
 			midground.UpdateBackground();
 			
 			scoreLabel.UpdateScore(player.Score);
 			
-			if (player.Pos.Y > graphics.Screen.Height - 80)
+			if (player.Pos.Y > graphics.Screen.Height)
 			{
 				screamTimer += deltaTime;
 				if (screamTimer < 50)
 					screamSP.Play();
 			}
 			
-			CheckPlayInput();
-					
 			CheckCollisions();
-			CheckBulletCollisions();
 			CheckForFallingPlatforms();
+			CheckForExplodingPowers();
 			CheckForDeadObjects();
-			Console.WriteLine(debug ? "Difficulty Increase Counter: " + allowDifficultyIncrease : null);
+			
+			CheckPlayInput();
+						
 			Console.WriteLine(debug ? "Platforms On Screen: " + totalPlatforms : null);
+			Console.WriteLine(debug ? "Projectiles On Screen: " + projectiles.Count : null);
 		}
-		
 		
 		
 		//Thanks Trevor Love!
@@ -277,6 +291,7 @@ namespace StaticJump
 				platform = new Platform(graphics, new Vector3(minX + i * minXDist, randCoordY, 0), tex, "platform");
 				platforms.Add(platform);
 			}
+			
 		}
 		
 		private static void UpdateDifficulty()
@@ -293,11 +308,9 @@ namespace StaticJump
 					SpawnPlatforms(platform1Tex, totalPlatforms+1, graphics.Screen.Width, 100, graphics.Screen.Height - 100, (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
 				}
 				
-				allowDifficultyIncrease++;
 				difficultyCounter = 0;
 			}
-		}	
-		
+		}
 		
 		private static void CheckForFallingPlatforms()
 		{
@@ -310,6 +323,19 @@ namespace StaticJump
 				{
 					plat.ChangeTexture(platform1CrumbleTex);
 					plat.currState = Platform.State.Crumbling;
+				}
+			}
+		}
+		
+		private static void CheckForExplodingPowers()
+		{
+			var gamePadData = GamePad.GetData(0);
+			
+			foreach(Power pow in powers)
+			{
+				if (pow.WillExplode)
+				{
+					pow.Explode();
 				}
 			}
 		}
@@ -332,11 +358,9 @@ namespace StaticJump
 		
 		private static void UpdatePaused()
 		{
-			
 			pauseMenu.Update(deltaTime);
 			CheckPauseInput();
 		}
-	
 		
 		#endregion
 		
@@ -349,13 +373,23 @@ namespace StaticJump
 		
 		private static void CheckCollisions()
 		{			
+			CheckPlayerCollisions();
+			CheckBulletCollisions();
+			CheckPowerCollisions();
+		}
+		
+		private static void CheckPlayerCollisions()
+		{
+			//Player on platforms 
+			
 			foreach (Platform plat in platforms)
 			{
 				if (Collides(player.Extents, plat.Extents) == true && plat.currState != Platform.State.Crumbling) // dont want to be able to jump on a platform in crumbling state
 				{
 					
-					if (player.Pos.Y + player.Extents.Height / 2 >= plat.Pos.Y && 
-					    player.Pos.Y + player.Extents.Height / 2 <= plat.Pos.Y + 5) // fall-through allowance
+					if (player.Pos.Y + player.Extents.Height / 2 >= plat.Pos.Y - plat.Extents.Height / 2 && 
+					    player.Pos.Y + player.Extents.Height / 2 <= plat.Pos.Y - plat.Extents.Height / 2 + 5 &&
+					    player.currState != Player.PlayerState.Jumping) // fall-through allowance
 					{
 						player.GroundedSpeed = plat.ScrollSpeed;
 						player.Grounded = true;
@@ -375,33 +409,88 @@ namespace StaticJump
 					player.Grounded = false;
 				}
 			}
+			
+			//Player on powers
+			
+			foreach (Power pow in powers)
+			{
+				if (Collides(player.Extents, pow.Extents) == true && pow.currState != Power.State.Exploded)
+				{
+					if (player.Pos.Y + player.Extents.Height / 2 >= pow.Pos.Y - pow.Extents.Height / 2 && 
+					    player.Pos.Y + player.Extents.Height / 2 <= pow.Pos.Y - pow.Extents.Height / 2 + 5 &&
+					    player.currState != Player.PlayerState.Jumping) // fall-through allowance
+					{
+						player.GroundedSpeed = pow.ScrollSpeed;
+						player.Grounded = true;
+						player.currState = Player.PlayerState.Stationary;
+						//set box to will explode
+						if (player.JumpPower >= 0.9f)
+							pow.WillExplode = true;
+						
+						break;
+					}
+				}
+				else
+				{
+					if (player.JumpPower < 0.9f)
+						pow.WillExplode = false; //when the player falls off the box at full power, the last box he was on will not explode
+				}
+			}
 		}
 		
 		private static void CheckBulletCollisions()
 		{	
-			foreach (Platform plat in platforms)
+			//Bullet offscreen
+			
+			foreach (Projectile proj in projectiles)
 			{
-
-				foreach (Projectile proj in projectiles)
+				if (proj.Pos.X > graphics.Screen.Width)
+					proj.Alive = false;
+			}
+			
+			//Bullets on powers
+			
+			foreach (Projectile proj in projectiles)
+			{
+				foreach (Power pow in powers)
 				{
-					if (Collides(proj.Extents, plat.Extents) == true)
+					if (Collides(proj.Extents, pow.Extents) == true && pow.currState != Power.State.Exploded)
 					{
 						proj.Alive = false;
-						plat.WillFall = true;
+						pow.WillExplode = true;
 					}
+				}
+			}
+		}
+		
+		private static void CheckPowerCollisions()
+		{
+			//Powers on platforms
+			
+			foreach (Power pow in powers)
+			{
+				foreach (Platform plat in platforms)
+				{
+					if (Collides(pow.Extents, plat.Extents) == true)
+					{
+						pow.Grounded = true;	
+						break;
+					}
+					else
+						pow.Grounded = false;
 				}
 			}
 		}
 		
 		private static bool Collides(Rectangle r1, Rectangle r2)
 		{
-			if (r1.Position.X + r1.Width / 2 < r2.Position.X)
+			if (r1.Position.X + r1.Width / 2 < r2.Position.X - r2.Width / 2) 
 				return false;
-			if (r1.Position.X - r1.Width / 2 > r2.Position.X + r2.Width)
+			if (r1.Position.X - r1.Width / 2 > r2.Position.X + r2.Width / 2)
 				return false;
-			if (r1.Position.Y + r1.Height / 2 < r2.Position.Y)
+			if (r1.Position.Y + r1.Height / 2 < r2.Position.Y - r2.Height / 2)
 				return false;
-			if (r1.Position.Y - r1.Height / 2 > r2.Position.Y + r2.Height)
+			if (r1.Position.Y - r1.Height / 2 > r2.Position.Y + r2.Height / 2)
 				return false;
 			
 			return true;
@@ -419,42 +508,44 @@ namespace StaticJump
 		{
 			var gamePadData = GamePad.GetData(0);
 			unpauseTimer += deltaTime;
-			
-			if (unpauseTimer >= 500)
+			if (unpauseTimer >= 300)
 			{
-			if ((gamePadData.Buttons & GamePadButtons.Start) != 0)
-			{
-				pauseMenu = new PauseMenu(graphics);
-				currState = GameState.Paused;
-				unpauseTimer = 0;
+				if ((gamePadData.Buttons & GamePadButtons.Start) != 0)
+				{
+					pauseMenu = new PauseMenu(graphics);
+					currState = GameState.Paused;
+					unpauseTimer = 0;
+				}
 			}
-		}
 		}
 		
 		private static void CheckMenuInput()
 		{
 			var gamePadData = GamePad.GetData(0);	 
+			
 			if (mainMenu.menuState == MainMenu.MenuHighlights.StartGame && (gamePadData.Buttons & GamePadButtons.Select) != 0)
 			{
 				currState = GameState.Playing;
 				StartGame();
 			}
-			}
+
+		}
+		
 		private static void CheckPauseInput()
 		{
 			var gamePadData = GamePad.GetData(0);
 			unpauseTimer += deltaTime;
-			
 			if (unpauseTimer >= 300)
 			{
-			if (pauseMenu.pauseMenuState == PauseMenu.pauseMenuHighlights.Resume && (gamePadData.Buttons & GamePadButtons.Start) != 0)
-			{
-				currState = GameState.Playing;
+				if (pauseMenu.pauseMenuState == PauseMenu.pauseMenuHighlights.Resume && (gamePadData.Buttons & GamePadButtons.Start) != 0)
+				{
+					currState = GameState.Playing;
 					unpauseTimer = 0;
+				}
 			}
 		}
-		}
-	
+
+
 		
 		#endregion
 		
@@ -483,6 +574,18 @@ namespace StaticJump
 					projectiles.RemoveAt(i);	
 				}
 			}
+			
+			foreach (Power pow in powers)
+			{
+				if (pow.Pos.X < -52)
+					pow.Alive = false;
+			}
+			
+			for (int i = powers.Count - 1; i >= 0; i--)
+			{
+				if (powers[i].Alive == false)
+					powers.RemoveAt(i);
+			}
 		}
 		
 		#endregion
@@ -496,10 +599,9 @@ namespace StaticJump
 		{
 			switch (currState)
 			{
-			case GameState.Menu: RenderMenu();  break;
+			case GameState.Menu: RenderMenu(); break;
 			case GameState.Playing: RenderPlaying(); break;
-			case GameState.Paused:
-				RenderPaused(); RenderPlaying (); break;
+			case GameState.Paused:  RenderPlaying(); break;
 			}
 		}
 		
@@ -527,6 +629,10 @@ namespace StaticJump
 			{
 				ter.Render();	
 			}
+			foreach (Power pow in powers)
+			{
+				pow.Render();	
+			}
 			scoreLabel.Render();
 			playerJumpPowerBar.Render();
 			playerChargePowerBar.Render();
@@ -535,8 +641,9 @@ namespace StaticJump
 			{
 				p.Render();	
 			}
+			
 			if (currState == GameState.Paused)
-				pauseMenu.Render();
+				RenderPaused();
 			
 			// Present the screen
 			graphics.SwapBuffers ();
@@ -544,12 +651,7 @@ namespace StaticJump
 		
 		private static void RenderPaused()
 		{
-			// Clear the screen
-//			graphics.SetClearColor (0.0f, 0.0f, 0.0f, 0.0f);
-//			graphics.Clear ();
 			pauseMenu.Render();
-			// Present the screen
-//			graphics.SwapBuffers ();
 		}
 		
 		#endregion
