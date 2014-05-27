@@ -101,12 +101,19 @@ namespace StaticJump
 					selPos.Y = 119;	selector.Position = selPos;
 					menuState = MenuHighlights.Controls;	
 				}
+				}
+				
+//			else (getting back to mainmenu from controls sprite)
+//			{
+//				selectorTimer = 0;
+//				if((gpd.Buttons & GamePadButtons.Start) != 0)
+//				{
+//					menuState = MenuHighlights.StartGame;
+//			}
+//			}
+			selector.Position = selPos;	
+		}
 			}
-			selector.Position = selPos;
-		}
-		}
-		
-		
 		public void AnimateSelector(long dt)
 		{
 			animationTimer+=dt;
