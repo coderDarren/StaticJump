@@ -8,28 +8,90 @@ namespace StaticJump
 {
 	public class Power : GameObject
 	{
+		private const long FRAME_DURATION = 75;
+		private const float FALL_SPEED = 1.5f;
+		
 		public enum State { Solid, Exploded };
 		public State currState;
 		private float scroll_speed;
+		private float alpha;
+		private bool willExplode;
+		private bool grounded;
 		
 		public Power (GraphicsContext gc, Vector3 pos, Texture2D tex, string id, float scroll_speed) : base(gc, pos, tex, id)
 		{ 
-			this.scroll_speed = scroll_speed; 
+			this.scroll_speed = scroll_speed;
+			willExplode = false;
+			alpha = 1.0f;
 			currState = State.Solid;
+			grounded = false;
 		} //scroll speed passed by whatever platform a power box spawns on
 		
-		public void UpdateSolid(ref Sprite s)
+		public virtual Rectangle Extents
+		{ get { return new Rectangle(0,0,0,0); } } //override in subclasses
+		
+		public float ScrollSpeed
+		{ get { return scroll_speed; }	}
+		
+		public bool WillExplode
+		{
+			get { return willExplode; }
+			set { willExplode = value; }
+		}
+		
+		public bool Grounded
+		{
+			get { return grounded; }
+			set { grounded = value; }
+		}
+		
+		public virtual void Update(long dt) 
+		{
+			if (!grounded)
+				Pos += new Vector3(-scroll_speed, FALL_SPEED, 0);
+			else
+				Pos += new Vector3(-scroll_speed, 0, 0);
+			
+			if (alpha <= 0)
+				Alive = false;
+		} 
+		
+		public void UpdateSolid()
 		{} // move the sprite left with scroll_speed 
 		
 		public void UpdateExploded(ref Sprite s)
-		{} // fade out the texture //continue moving the sprite left
+		{ 
+			alpha -= 0.01f;
+			s.SetColor(1.0f, 1.0f, 1.0f, alpha); 
+			
+		} // fade out the texture //continue moving the sprite left
 		
 		public virtual void Explode()
-		{}//replace sprite with exploding tex //currstate will be set to exploded
-		
-		public void Render(Sprite s)
 		{
-			s.Render();
+			currState = State.Exploded;
+		}//replace sprite with exploding tex //currstate will be set to exploded
+		
+		public void Animate(long dt, ref long timer, int frame_Num, ref int frame)
+		{
+			timer+=dt;
+			if (timer > FRAME_DURATION)
+			{
+				frame++;
+				timer = 0;
+			}
+			if (currState == State.Solid)
+			{
+				if (frame > frame_Num-1)
+					frame = 0;
+			}
+			else
+			{
+				if (frame > frame_Num-1) //leave the power on the last frame as it fades out..dont return to first frame
+					frame = frame_Num-1;	
+			}
 		}
+		
+		public virtual void Render() {} //nothing needs to go in this method
 	}
 }
+
