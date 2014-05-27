@@ -522,11 +522,15 @@ namespace StaticJump
 		private static void CheckMenuInput()
 		{
 			var gamePadData = GamePad.GetData(0);	 
-			
-			if (mainMenu.menuState == MainMenu.MenuHighlights.StartGame && (gamePadData.Buttons & GamePadButtons.Select) != 0)
+			unpauseTimer += deltaTime;
+			if (unpauseTimer >= 200)
+			{
+			if (mainMenu.menuState == MainMenu.MenuHighlights.StartGame && (gamePadData.Buttons & GamePadButtons.Start) != 0)
 			{
 				currState = GameState.Playing;
 				StartGame();
+				unpauseTimer = 0;
+			}
 			}
 
 		}
@@ -541,6 +545,23 @@ namespace StaticJump
 				{
 					currState = GameState.Playing;
 					unpauseTimer = 0;
+				}
+				if (pauseMenu.pauseMenuState == PauseMenu.pauseMenuHighlights.Restart && (gamePadData.Buttons & GamePadButtons.Start) != 0)
+				{
+					StartGame ();
+					currState = GameState.Playing;
+					unpauseTimer = 0;
+				}
+				if (pauseMenu.pauseMenuState == PauseMenu.pauseMenuHighlights.Resume && (gamePadData.Buttons & GamePadButtons.Start) != 0)
+				{
+					currState = GameState.Playing;
+					unpauseTimer = 0;
+				}
+				if (pauseMenu.pauseMenuState == PauseMenu.pauseMenuHighlights.Menu && (gamePadData.Buttons & GamePadButtons.Start) != 0)
+				{	unpauseTimer = 0;
+					mainMenu.menuState = MainMenu.MenuHighlights.StartGame;
+					currState = GameState.Menu;
+					
 				}
 			}
 		}
