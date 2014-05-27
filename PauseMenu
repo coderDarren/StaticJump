@@ -21,8 +21,8 @@ namespace StaticJump
 		
 		private Sprite background;
 		private Sprite controls;
-		private Sprite selector;
-		private Vector3 selPos;
+		private Sprite selector,selector2;
+		private Vector3 selPos,selPos2;
 		private GraphicsContext graphics;
 		
 		public PauseMenu (GraphicsContext gc)
@@ -39,16 +39,26 @@ namespace StaticJump
 			background = new Sprite(graphics, backTex);
 			controls = new Sprite(graphics, selectorTex);
 			selector = new Sprite(graphics, selectorTex);
+			selector2 = new Sprite(graphics, selectorTex);
 			selector.Center = new Vector2(0.5f, 0.5f);
+			selector2.Center = new Vector2(0.5f, 0.5f);
+			background.Center = new Vector2(0.5f, 0.5f);
 			selector.Width = SELECTOR_SIZE;
 			selector.Height = SELECTOR_SIZE;
-			selPos = new Vector3(graphics.Screen.Width - 220, 82, 0);
+			selector2.Width = SELECTOR_SIZE;
+			selector2.Height = SELECTOR_SIZE;
+			selPos = new Vector3(405, 245, 0);
+			selPos2 = new Vector3(556,245,0);
+			
 			selector.Position = selPos;
+			selector2.Position = selPos2;
 			
 		}
 		
 		public void Update(long dt)
 		{   
+			background.Position.X = graphics.Screen.Width / 2;
+			background.Position.Y = graphics.Screen.Height / 2;
 			AnimateSelector(dt);
 			selectorTimer += dt;
 			var gpd = GamePad.GetData(0);
@@ -60,12 +70,18 @@ namespace StaticJump
 				selectorTimer = 0;
 				if((gpd.Buttons & GamePadButtons.Down) != 0)
 				{
-					selPos.Y = 119; 	
+					selPos.Y = 294;
+					selPos2.Y = 294;
+					selPos.X = 400;
+					selPos2.X = 561;
 					pauseMenuState = pauseMenuHighlights.Restart;
 				}
 				if((gpd.Buttons & GamePadButtons.Up) != 0)
 				{
-					selPos.Y = 156; 
+					selPos.Y = 340;
+					selPos2.Y = 340;
+					selPos.X = 418;
+					selPos2.X = 543;
 					pauseMenuState = pauseMenuHighlights.Menu;
 				}
 			}
@@ -79,12 +95,18 @@ namespace StaticJump
 					}
 				if((gpd.Buttons & GamePadButtons.Down) != 0)
 				{
-					selPos.Y = 156;	
+					selPos.Y = 340;	
+					selPos2.Y = 340;
+					selPos.X = 418;
+					selPos2.X = 543;
 					pauseMenuState = pauseMenuHighlights.Menu;
 				}
 				if((gpd.Buttons & GamePadButtons.Up) != 0)
 				{
-					selPos.Y = 81; 
+					selPos.Y = 245;
+					selPos2.Y = 245;
+					selPos.X = 405;
+					selPos2.X = 556;
 					pauseMenuState = pauseMenuHighlights.Resume;
 				}
 			}
@@ -93,16 +115,23 @@ namespace StaticJump
 				selectorTimer = 0;
 				if((gpd.Buttons & GamePadButtons.Down) != 0)
 				{
-					selPos.Y = 81;
+					selPos.Y = 245;
+					selPos2.Y = 245;
+					selPos.X = 405;
+					selPos2.X = 556;
 					pauseMenuState = pauseMenuHighlights.Resume;
 				}
 				if((gpd.Buttons & GamePadButtons.Up) != 0)
 				{
-					selPos.Y = 119;	selector.Position = selPos;
+					selPos.Y = 294;
+					selPos2.Y = 294;
+					selPos.X = 400;
+					selPos2.X = 561;
 					pauseMenuState = pauseMenuHighlights.Restart;	
 				}
 			}
 			selector.Position = selPos;
+			selector2.Position = selPos2;
 		}
 		}
 		
@@ -138,8 +167,12 @@ namespace StaticJump
 			                         0,
 			                         ((activeFrame+1) * SELECTOR_SIZE)-1,
 			                         SELECTOR_SIZE);
-			
+			selector2.SetTextureCoord(activeFrame * SELECTOR_SIZE,
+			                         0,
+			                         ((activeFrame+1) * SELECTOR_SIZE)-1,
+			                         SELECTOR_SIZE);
 			selector.Render ();
+			selector2.Render ();
 			}
 			
 		}
