@@ -13,6 +13,8 @@ namespace StaticJump
 		public enum pauseMenuHighlights {Resume, Restart,ControlsSelected, Menu}
 		public pauseMenuHighlights pauseMenuState;
 		
+		private const float SCALE_STEP = 0.1f; //The rate of scaling
+		
 		private const int SELECTOR_SIZE = 44;
 		private const long FRAME_DURATION = 60;
 		private long animationTimer;
@@ -20,7 +22,6 @@ namespace StaticJump
 		private int activeFrame;
 		
 		private Sprite background;
-		private Sprite controls;
 		private Sprite selector,selector2;
 		private Vector3 selPos,selPos2;
 		private GraphicsContext graphics;
@@ -37,7 +38,6 @@ namespace StaticJump
 			selectorTimer = 0;
 			
 			background = new Sprite(graphics, backTex);
-			controls = new Sprite(graphics, selectorTex);
 			selector = new Sprite(graphics, selectorTex);
 			selector2 = new Sprite(graphics, selectorTex);
 			selector.Center = new Vector2(0.5f, 0.5f);
@@ -56,10 +56,16 @@ namespace StaticJump
 			selector.Position = selPos;
 			selector2.Position = selPos2;
 			
+			background.Scale = new Vector2(0, 0);
+			selector.Scale = new Vector2(0, 0);
+			selector2.Scale = new Vector2(0, 0);
+			
 		}
 		
 		public void Update(long dt)
 		{
+			if (background.Scale.X < 1.0f)
+				ScaleIn();
 			
 			AnimateSelector(dt);
 			selectorTimer += dt;
@@ -148,6 +154,15 @@ namespace StaticJump
 		}
 		
 		
+		
+		private void ScaleIn()
+		{
+			background.Scale += new Vector2(SCALE_STEP, SCALE_STEP);
+			selector.Scale += new Vector2(SCALE_STEP, SCALE_STEP);
+			selector2.Scale += new Vector2(SCALE_STEP, SCALE_STEP);
+		}
+		
+		
 		public void AnimateSelector(long dt)
 		{
 			animationTimer+=dt;
@@ -165,13 +180,6 @@ namespace StaticJump
 		
 		public void Render()
 		{
-			if(pauseMenuState == pauseMenuHighlights.ControlsSelected)
-			{
-			controls.Render ();
-			}
-			
-			else 
-			{
 			background.Render ();
 			
 			selector.SetTextureCoord(activeFrame * SELECTOR_SIZE,
@@ -184,7 +192,7 @@ namespace StaticJump
 			                         SELECTOR_SIZE);
 			selector.Render ();
 			selector2.Render ();
-			}
+			
 			
 		}
 	}
