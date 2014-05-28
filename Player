@@ -17,7 +17,7 @@ namespace StaticJump
 		public Animation currAnim;
 		
 		private const float GRAVITY = 3.2f;
-		private const float JUMP_POW_RATE = 0.1f; // controls the rate at which jump power increases
+		private const float JUMP_POW_RATE = 0.075f; // controls the rate at which jump power increases
 		private const long FRAME_DURATION = 75;
 		private const float FRAME_HEIGHT = 52;
 		private const float FRAME_WIDTH = 24;
@@ -37,6 +37,8 @@ namespace StaticJump
 		private float weight; // something between 0 and 2.0f
 		private int score;
 		private float groundedSpeed; //controls the speed of the player depending on what platform he is on
+		private float chargePower; //source of player damage
+		private const float CHARGE_POWER_STEP = 0.025f; //controls the rate at which the player loses charge power
 		
 		private long jumpPowerTimer; // determines when to begin building jump power
 		private long jumpReleaseTimer; // used to determine how long ago the jump button was released
@@ -70,6 +72,7 @@ namespace StaticJump
 			groundedSpeed = 0;
 			shootTimer = 0;
 			scoreTimer = 0;
+			chargePower = 1.0f;
 			
 			currState = PlayerState.Falling;
 			dir = Direction.Right;
@@ -116,12 +119,19 @@ namespace StaticJump
 		public int Score
 		{
 			get { return score; }
+			set { score = value; }
 		}
 		
 		public float GroundedSpeed
 		{
 			get { return groundedSpeed; }
 			set { if (value <= 4.0f && value >= -4.0f) groundedSpeed = value; }
+		}
+		
+		public float ChargePower
+		{
+			get { return chargePower; }
+			set { if (value < 100.0f && value > 1.0f) chargePower = value; }
 		}
 		
 		#endregion
@@ -158,10 +168,15 @@ namespace StaticJump
 				scoreTimer = 0;
 			}
 			
+			//charge power always steadily decreases
+			if (chargePower >= 1.0f)
+				chargePower -= CHARGE_POWER_STEP;
+			
 			s.Position = Pos;
 			
 			Console.WriteLine(AppMain.debug ? "Grounded: " +grounded : null);
 			Console.WriteLine(AppMain.debug ? "Player Animation: " +currAnim : null);
+			Console.WriteLine(AppMain.debug ? "Charge Power: " + chargePower : null );
 		}
 		
 		
