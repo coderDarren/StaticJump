@@ -16,16 +16,22 @@ namespace StaticJump
 		private float stickiness;
 		private Sprite t;
 		private float scroll_speed;
+		
+		private bool hasOrbs;
+		private int orbCount;
 				
 		public Platform (GraphicsContext gc, Vector3 pos, Texture2D tex, string id) : base(gc, pos, tex, id) 
 		{
 			graphics = gc;
 			t = new Sprite(gc, tex);
+			t.Center = new Vector2(0.5f, 0.5f);
 			t.Position = pos;
-			stickiness = 5.0f; 
-			this.scroll_speed = 0.99f;
+			stickiness = 1.0f; 
+			this.scroll_speed = 1.5f;
 			willFall = false;
 			Console.WriteLine(AppMain.debug ? "Platform Scroll Speed: " + scroll_speed : null);
+			
+			hasOrbs = false;
 		}
 		
 		public float ScrollSpeed
@@ -49,6 +55,18 @@ namespace StaticJump
 		{
 			get { return willFall; }
 			set { willFall = value; }
+		}
+		
+		public bool HasOrbs
+		{
+			get { return hasOrbs; }
+			set { hasOrbs = value; }
+		}
+		
+		public int OrbCount
+		{
+			get { return orbCount; }
+			set { orbCount = value; }
 		}
 		
 		public void UpdatePos ()
@@ -78,7 +96,7 @@ namespace StaticJump
 		{
 			willFall = false;
 			t = new Sprite(graphics, tex);	
-			Pos += new Vector3(-10, 0,0);
+			t.Center = new Vector2(0.5f, 0.5f);
 			t.Position = Pos;
 		}
 				
@@ -92,3 +110,4 @@ namespace StaticJump
 		}
 	}
 }
+
