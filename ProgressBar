@@ -14,9 +14,11 @@ namespace StaticJump
 		private Sprite bar;
 		private Texture2D barTex;
 		private Sprite glow;
+		private Sprite glow2;
 		private Texture2D glowTex;
 		private List<Sprite> bars;
 		private Vector3 pos;
+		public float randfloat;
 		
 		private float red;
 		private float blue;
@@ -32,7 +34,9 @@ namespace StaticJump
 			glow = new Sprite(graphics, glowTex);
 			glow.Center = new Vector2(0.5f, 0.5f);
 			glow.Position = pos;
-			glow.Position.Y++;
+			glow2 = new Sprite(graphics, glowTex);
+			glow2.Center = new Vector2(0.5f, 0.5f);
+			glow2.Position = pos;
 			this.pos = pos; // used for the starting point of the bars
 			
 			red = 0.0f;
@@ -50,6 +54,7 @@ namespace StaticJump
 		public void AddBar()
 		{
 			bar = new Sprite(graphics, barTex);
+			bar.Center = new Vector2(0.5f, 0.5f);
 			bars.Add(bar);
 		}
 		
@@ -65,7 +70,7 @@ namespace StaticJump
 				bars[i].Position = pos + new Vector3(i * bars[i].Width, 0, 0);	
 			}
 			if (bars.Count >= 1)
-				glow.Position = bars[bars.Count-1].Position + new Vector3(10, 2,0);
+				glow2.Position = bars[bars.Count-1].Position;
 		}
 		
 		public void SetBarColor(float r, float g, float b, float a)
@@ -79,6 +84,7 @@ namespace StaticJump
 		public void Render()
 		{
 			glow.SetColor(red, green, blue, alpha);
+			glow2.SetColor(red, green, blue, alpha);
 			
 			foreach(Sprite b in bars)
 			{
@@ -86,6 +92,8 @@ namespace StaticJump
 				b.Render();
 			}
 			glow.Render();
+			glow2.Render();
 		}
 	}
 }
+
