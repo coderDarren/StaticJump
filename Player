@@ -16,7 +16,7 @@ namespace StaticJump
 		public enum Animation { Running, Stationary, StationaryShoot, Boosting };
 		public Animation currAnim;
 		
-		private const float GRAVITY = 2.4f;
+		private const float GRAVITY = 3.2f;
 		private const float JUMP_POW_RATE = 0.1f; // controls the rate at which jump power increases
 		private const long FRAME_DURATION = 75;
 		private const float FRAME_HEIGHT = 52;
@@ -61,8 +61,8 @@ namespace StaticJump
 			jumpPowerTimer = 0;
 			jumpReleaseTimer = 45;
 			jumpTimer = 0;
-			jumpSpeed = 6.2f;
-			speed = 4.0f;
+			jumpSpeed = 5.2f;
+			speed = 3.0f;
 			weight = 0.2f;
 			activeFrame = 0;
 			animationTimer = 0;
@@ -97,7 +97,8 @@ namespace StaticJump
 		
 		public float JumpPower
 		{
-			get { return jumpPower; }	
+			get { return jumpPower; }
+			set { jumpPower = value; }
 		}
 		
 		public float Speed
@@ -192,7 +193,7 @@ namespace StaticJump
 				//Jump
 				jumpPowerTimer = 0;
 				jumpReleaseTimer += dt;
-				if (jumpReleaseTimer <= 300)
+				if (jumpReleaseTimer <= 300 && currState != PlayerState.Falling)
 					currState = PlayerState.Jumping;
 				
 				if (currAnim != Animation.StationaryShoot && currAnim != Animation.Running)
@@ -282,7 +283,7 @@ namespace StaticJump
 			else
 				jumpDamper += 0.15f;
 				
-			Pos += new Vector3(0, -jumpSpeed + weight + jumpDamper - jumpPower*6, 0);
+			Pos += new Vector3(0, -jumpSpeed + weight + jumpDamper - jumpPower*4, 0);
 			
 			jumpPower -= 0.01f; // helps with a more parabolic motion on jumps
 			
