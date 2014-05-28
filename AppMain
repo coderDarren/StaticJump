@@ -25,7 +25,7 @@ namespace StaticJump
 		private static Random randGen;
 		private static int randCoordX;
 		private static int randCoordY;
-		private static int allowDifficultyIncrease;
+		private static int randNum;
 		
 		#region Sounds 
 		
@@ -58,6 +58,7 @@ namespace StaticJump
 		private static Texture2D bulletTex;
 		private static Texture2D enemyTex;
 		private static Texture2D powBox1Tex;
+		private static Texture2D hudBarTex;
 		
 		#endregion
 		
@@ -110,6 +111,7 @@ namespace StaticJump
 		
 		private static PlayerAttribute playerJumpPowerBar;
 		private static PlayerAttribute playerChargePowerBar;
+		private static Sprite hudBar;
 		
 		#endregion
 		
@@ -167,31 +169,27 @@ namespace StaticJump
 			bulletTex = new Texture2D("Application/Assets/player_projectile_sheet.png", false);
 			platform1CrumbleTex = new Texture2D("Application/Assets/platform1crumble.png",false);
 			powBox1Tex = new Texture2D("Application/Assets/power_box1_sheet.png", false);
+			hudBarTex = new Texture2D("Application/Assets/hudbar.png", false);
 		}
 		
 		private static void InitializeObjects()
 		{
 			//Initially spawn enough for a double wide screen
-			SpawnPlatforms(platform1Tex, totalPlatforms, 0, 100, graphics.Screen.Height - 100, 
+			SpawnPlatforms(platform1Tex, totalPlatforms, 28, 150, graphics.Screen.Height - 100, 
 			               (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
-			SpawnPlatforms(platform1Tex, totalPlatforms-1, graphics.Screen.Width + 56, 100, graphics.Screen.Height - 100, 
+			SpawnPlatforms(platform1Tex, totalPlatforms-1, graphics.Screen.Width + 56, 150, graphics.Screen.Height - 100, 
 			               (graphics.Screen.Width + graphics.Screen.Width / (totalPlatforms-1)) / (totalPlatforms-1));
 
 			background = new Background(graphics, bg1Tex, 0.2f);
 			midground = new Background(graphics, mg1Tex, 0.4f);
 			player = new Player(graphics, new Vector3(platforms[3].Pos.X, platforms[3].Pos.Y - 80, 0), playerTex);
 			scoreLabel = new Scoreboard(graphics);
-			playerJumpPowerBar = new PlayerAttribute(graphics, new Vector3(130, graphics.Screen.Height - 40, 0), attributeBarTex);
+			playerJumpPowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 + 300, graphics.Screen.Height - 24, 0), attributeBarTex);
 			playerJumpPowerBar.SetAttributeBarColor(1.0f, 1.0f, 0.0f, 1.0f);
-			playerChargePowerBar = new PlayerAttribute(graphics, new Vector3(130, graphics.Screen.Height - 20, 0), attributeBarTex);
+			playerChargePowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 - 300, graphics.Screen.Height - 24, 0), attributeBarTex);
 			playerChargePowerBar.SetAttributeBarColor(0.0f, 1.0f, 1.0f, 1.0f);
-			
-	
-			for (int i = 1; i < platforms.Count - 1; i++)
-			{
-				pow1 = new MaxChargePower(graphics, new Vector3(platforms[i].Pos.X + 6, platforms[i].Pos.Y - platforms[i].Extents.Height, 0), powBox1Tex, "power1", platforms[1].ScrollSpeed);
-				powers.Add(pow1);
-			}
+			hudBar = new Sprite(graphics, hudBarTex);
+			hudBar.Position = new Vector3(0, graphics.Screen.Height - 28, 0);
 		}	
 		
 		private static void StartGame()
@@ -201,9 +199,8 @@ namespace StaticJump
 			unpauseTimer = 0;
 			shootTimer = 0;
 			screamTimer = 0;
-			totalPlatforms = 12;
+			totalPlatforms = 14;
 			difficultyCounter = 0;
-			allowDifficultyIncrease = 0;
 			
 			InitializeCollections();
 			InitializeTextures();
@@ -281,7 +278,6 @@ namespace StaticJump
 		}
 		
 		
-		//Thanks Trevor Love!
 		private static void SpawnPlatforms(Texture2D tex, int numObjects, int minX, int minY, int maxY, float minXDist)
 		{
 			for (int i = 0; i < numObjects; i++)
@@ -294,18 +290,28 @@ namespace StaticJump
 			
 		}
 		
+		private static void SpawnPowers()
+		{
+			randNum = randGen.Next(platforms.Count / 2, platforms.Count);
+			pow1 = new MaxChargePower(graphics, new Vector3(platforms[randNum].Pos.X, platforms[randNum].Pos.Y - platforms[randNum].Extents.Height, 0), 
+			                          powBox1Tex, "power1", platforms[platforms.Count-1].ScrollSpeed);
+			powers.Add(pow1);
+		}
+		
 		private static void UpdateDifficulty()
 		{			
 			if (difficultyCounter / totalPlatforms == 1)
 			{
-				if (totalPlatforms > 6)
+				if (totalPlatforms > 8)
 				{
 					totalPlatforms--;	
-					SpawnPlatforms(platform1Tex, totalPlatforms, graphics.Screen.Width, 100, graphics.Screen.Height - 50, (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
+					SpawnPlatforms(platform1Tex, totalPlatforms, graphics.Screen.Width + 28, 150, graphics.Screen.Height - 100, (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
+					SpawnPowers();
 				}
 				else //totalPlatforms needs to add 1 to conform with the range of the list in CheckForDeadObjects()
 				{
-					SpawnPlatforms(platform1Tex, totalPlatforms+1, graphics.Screen.Width, 100, graphics.Screen.Height - 100, (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
+					SpawnPlatforms(platform1Tex, totalPlatforms+1, graphics.Screen.Width + 28, 150, graphics.Screen.Height - 100, (graphics.Screen.Width + graphics.Screen.Width / totalPlatforms) / totalPlatforms);
+					SpawnPowers();
 				}
 				
 				difficultyCounter = 0;
@@ -388,7 +394,7 @@ namespace StaticJump
 				{
 					
 					if (player.Pos.Y + player.Extents.Height / 2 >= plat.Pos.Y - plat.Extents.Height / 2 && 
-					    player.Pos.Y + player.Extents.Height / 2 <= plat.Pos.Y - plat.Extents.Height / 2 + 5 &&
+					    player.Pos.Y + player.Extents.Height / 2 <= plat.Pos.Y - plat.Extents.Height / 2 + 10 &&
 					    player.currState != Player.PlayerState.Jumping) // fall-through allowance
 					{
 						player.GroundedSpeed = plat.ScrollSpeed;
@@ -417,7 +423,7 @@ namespace StaticJump
 				if (Collides(player.Extents, pow.Extents) == true && pow.currState != Power.State.Exploded)
 				{
 					if (player.Pos.Y + player.Extents.Height / 2 >= pow.Pos.Y - pow.Extents.Height / 2 && 
-					    player.Pos.Y + player.Extents.Height / 2 <= pow.Pos.Y - pow.Extents.Height / 2 + 5 &&
+					    player.Pos.Y + player.Extents.Height / 2 <= pow.Pos.Y - pow.Extents.Height / 2 + 10 &&
 					    player.currState != Player.PlayerState.Jumping) // fall-through allowance
 					{
 						player.GroundedSpeed = pow.ScrollSpeed;
@@ -522,15 +528,16 @@ namespace StaticJump
 		private static void CheckMenuInput()
 		{
 			var gamePadData = GamePad.GetData(0);	 
+			
 			unpauseTimer += deltaTime;
-			if (unpauseTimer >= 200)
+			if (unpauseTimer >= 300)
 			{
-			if (mainMenu.menuState == MainMenu.MenuHighlights.StartGame && (gamePadData.Buttons & GamePadButtons.Start) != 0)
-			{
-				currState = GameState.Playing;
-				StartGame();
-				unpauseTimer = 0;
-			}
+				if (mainMenu.menuState == MainMenu.MenuHighlights.StartGame && (gamePadData.Buttons & GamePadButtons.Start) != 0)
+				{
+					currState = GameState.Playing;
+					StartGame();
+					unpauseTimer = 0;
+				}
 			}
 
 		}
@@ -541,11 +548,6 @@ namespace StaticJump
 			unpauseTimer += deltaTime;
 			if (unpauseTimer >= 300)
 			{
-				if (pauseMenu.pauseMenuState == PauseMenu.pauseMenuHighlights.Resume && (gamePadData.Buttons & GamePadButtons.Start) != 0)
-				{
-					currState = GameState.Playing;
-					unpauseTimer = 0;
-				}
 				if (pauseMenu.pauseMenuState == PauseMenu.pauseMenuHighlights.Restart && (gamePadData.Buttons & GamePadButtons.Start) != 0)
 				{
 					StartGame ();
@@ -646,6 +648,7 @@ namespace StaticJump
 			
 			background.Render();
 			midground.Render();
+			hudBar.Render();
 			foreach (Platform ter in platforms)
 			{
 				ter.Render();	
