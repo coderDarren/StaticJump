@@ -20,7 +20,7 @@ namespace StaticJump
 		private static GraphicsContext graphics;
 		private enum GameState { Menu, Playing, Paused };
 		private static GameState currState;
-		private static int totalPlatforms; //difficulty guage
+		private static int totalPlatforms; 
 		
 		private static Random randGen;
 		private static int randCoordX;
@@ -41,6 +41,7 @@ namespace StaticJump
 		private static List<Platform> platforms;
 		private static List<Power> powers;
 		private static List<Projectile> projectiles;
+		private static List<Orb> orbs;
 		
 		#endregion
 		
@@ -50,15 +51,16 @@ namespace StaticJump
 		
 		private static Texture2D platform1Tex;
 		private static Texture2D platform1CrumbleTex;
-		private static Texture2D power1Tex;
 		private static Texture2D bg1Tex; //background
 		private static Texture2D mg1Tex; //midground
 		private static Texture2D playerTex;
-		private static Texture2D attributeBarTex;
+		private static Texture2D jumpAttrTex;
+		private static Texture2D chargeAttrTex;
 		private static Texture2D bulletTex;
 		private static Texture2D enemyTex;
 		private static Texture2D powBox1Tex;
 		private static Texture2D hudBarTex;
+		private static Texture2D orbTex;
 		
 		#endregion
 		
@@ -74,12 +76,12 @@ namespace StaticJump
 		#region Game Objects
 		
 		private static Platform platform;
-		private static Power power;
 		private static Background background;
 		private static Background midground;
 		private static Player player;
 		private static Scoreboard scoreLabel;
 		private static MaxChargePower pow1;
+		private static Orb orb;
 		
 		#endregion
 		
@@ -156,20 +158,22 @@ namespace StaticJump
 			platforms = new List<Platform>();
 			powers = new List<Power>();
 			projectiles = new List<Projectile>();
+			orbs = new List<Orb>();
 		}
 		
 		private static void InitializeTextures()
 		{
 			platform1Tex = new Texture2D("Application/Assets/platform1.png", false);
-			//power1Tex = new Texture2D("Application/Assets/diamond.png", false);
 			bg1Tex = new Texture2D("Application/Assets/background1.png", false);
 			mg1Tex = new Texture2D("Application/Assets/midground1.png", false);
 			playerTex = new Texture2D("Application/Assets/player_anim_sheet.png", false);
-			attributeBarTex = new Texture2D("Application/Assets/attribute_bar.png", false);
+			jumpAttrTex = new Texture2D("Application/Assets/jumppower_attribute.png", false);
+			chargeAttrTex = new Texture2D("Application/Assets/chargepower_attribute.png", false);
 			bulletTex = new Texture2D("Application/Assets/player_projectile_sheet.png", false);
 			platform1CrumbleTex = new Texture2D("Application/Assets/platform1crumble.png",false);
 			powBox1Tex = new Texture2D("Application/Assets/power_box1_sheet.png", false);
 			hudBarTex = new Texture2D("Application/Assets/hudbar.png", false);
+			orbTex = new Texture2D("Application/Assets/orb.png", false);
 		}
 		
 		private static void InitializeObjects()
@@ -184,12 +188,13 @@ namespace StaticJump
 			midground = new Background(graphics, mg1Tex, 0.4f);
 			player = new Player(graphics, new Vector3(platforms[3].Pos.X, platforms[3].Pos.Y - 80, 0), playerTex);
 			scoreLabel = new Scoreboard(graphics);
-			playerJumpPowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 + 300, graphics.Screen.Height - 24, 0), attributeBarTex);
+			playerJumpPowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 + 300, graphics.Screen.Height - 24, 0), jumpAttrTex);
 			playerJumpPowerBar.SetAttributeBarColor(1.0f, 1.0f, 0.0f, 1.0f);
-			playerChargePowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 - 300, graphics.Screen.Height - 24, 0), attributeBarTex);
+			playerChargePowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 - 300, graphics.Screen.Height - 24, 0), chargeAttrTex);
 			playerChargePowerBar.SetAttributeBarColor(0.0f, 1.0f, 1.0f, 1.0f);
 			hudBar = new Sprite(graphics, hudBarTex);
 			hudBar.Position = new Vector3(0, graphics.Screen.Height - 28, 0);
+			
 		}	
 		
 		private static void StartGame()
@@ -243,7 +248,7 @@ namespace StaticJump
 			}
 			player.Update(deltaTime);
 			playerJumpPowerBar.UpdateAttribute(player.JumpPower, 1.0f);
-			playerChargePowerBar.UpdateAttribute(player.JumpPower, 5.0f);
+			playerChargePowerBar.UpdateAttribute(player.ChargePower, 100.0f);
 			UpdateProjectile();
 			foreach (Projectile proj in projectiles)
 			{
@@ -253,9 +258,13 @@ namespace StaticJump
 			{
 				pow.Update(deltaTime);	
 			}
-			UpdateDifficulty();
 			background.UpdateBackground();
 			midground.UpdateBackground();
+			foreach (Orb o in orbs)
+			{
+				o.Follow(player.Pos, deltaTime);
+			}
+			UpdateDifficulty();
 			
 			scoreLabel.UpdateScore(player.Score);
 			
@@ -269,6 +278,7 @@ namespace StaticJump
 			CheckCollisions();
 			CheckForFallingPlatforms();
 			CheckForExplodingPowers();
+			SpawnOrbs();
 			CheckForDeadObjects();
 			
 			CheckPlayInput();
@@ -285,6 +295,13 @@ namespace StaticJump
 				Console.WriteLine(debug ? "Platform Separation: " + minXDist : null);
 				randCoordY = randGen.Next(minY, maxY);
 				platform = new Platform(graphics, new Vector3(minX + i * minXDist, randCoordY, 0), tex, "platform");
+				//Randomly give platforms hidden orbs
+				platform.OrbCount = randGen.Next(0, 2);
+				if (platform.OrbCount > 0)
+				{
+					platform.HasOrbs = true;
+					platform.OrbCount = randGen.Next(1, 7);
+				}
 				platforms.Add(platform);
 			}
 			
@@ -315,6 +332,22 @@ namespace StaticJump
 				}
 				
 				difficultyCounter = 0;
+			}
+		}
+		
+		private static void SpawnOrbs()
+		{
+			foreach(Platform plat in platforms)
+			{
+				if (plat.currState == Platform.State.Crumbling && plat.HasOrbs)
+				{
+					for (int i = 0; i < plat.OrbCount; i++)
+					{
+						orb = new Orb(graphics, plat.Pos + new Vector3(randGen.Next(-40, 40), randGen.Next(-40, 40), 0), orbTex, "orb");
+						orbs.Add(orb);
+					}
+					plat.HasOrbs = false;
+				}
 			}
 		}
 		
@@ -382,6 +415,7 @@ namespace StaticJump
 			CheckPlayerCollisions();
 			CheckBulletCollisions();
 			CheckPowerCollisions();
+			CheckOrbCollision();
 		}
 		
 		private static void CheckPlayerCollisions()
@@ -488,6 +522,21 @@ namespace StaticJump
 			}
 		}
 		
+		private static void CheckOrbCollision()
+		{
+			//Orbs on player
+			
+			foreach(Orb o in orbs)
+			{
+				if (Vector3.Distance(o.Pos, player.Pos) < o.Extents.Width)
+				{
+					o.Alive = false;
+					player.ChargePower += 6.5f;
+					player.Score += 10;
+				}
+			}
+		}
+		
 		private static bool Collides(Rectangle r1, Rectangle r2)
 		{
 			if (r1.Position.X + r1.Width / 2 < r2.Position.X - r2.Width / 2) 
@@ -579,6 +628,8 @@ namespace StaticJump
 		
 		private static void CheckForDeadObjects()
 		{
+			//Platforms
+			
 			if (platforms[totalPlatforms].Pos.X < -56)
 			{
 				for (int z = totalPlatforms; z >= 0; z--)
@@ -590,6 +641,8 @@ namespace StaticJump
 				}
 			}
 			
+			//Projectiles
+			
 			for (int i = projectiles.Count - 1; i >= 0; i--)
 			{
 				if (projectiles[i].Alive == false)
@@ -597,6 +650,8 @@ namespace StaticJump
 					projectiles.RemoveAt(i);	
 				}
 			}
+			
+			//Powers
 			
 			foreach (Power pow in powers)
 			{
@@ -609,6 +664,12 @@ namespace StaticJump
 				if (powers[i].Alive == false)
 					powers.RemoveAt(i);
 			}
+			
+			// Orbs
+			
+			for (int i = orbs.Count - 1; i >= 0; i--)
+				if (orbs[i].Alive == false)
+					orbs.RemoveAt(i);
 		}
 		
 		#endregion
@@ -665,6 +726,10 @@ namespace StaticJump
 			{
 				p.Render();	
 			}
+			foreach (Orb o in orbs)
+			{
+				o.Render();	
+			}
 			
 			if (currState == GameState.Paused)
 				RenderPaused();
@@ -681,3 +746,4 @@ namespace StaticJump
 		#endregion
 	}
 }
+
