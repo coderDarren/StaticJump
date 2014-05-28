@@ -1,0 +1,64 @@
+using System;
+using System.Collections.Generic;
+using Sce.PlayStation.Core;
+using Sce.PlayStation.Core.Environment;
+using Sce.PlayStation.Core.Graphics;
+using Sce.PlayStation.Core.Input;
+
+namespace StaticJump
+{
+	public class Orb : GameObject
+	{
+		private const float SHRINK_RATE = 0.0075f; // Rate at which the orbs will shrink
+		private const float MOVE_RATE = 0.12f; // Rate at which the orbs accelerate
+		
+		private float xDifference;
+		private float yDifference;
+		private float distance;
+		
+		private Sprite orb;
+		private float velocity;
+		
+		public Orb (GraphicsContext gc, Vector3 pos, Texture2D tex, string id) : base (gc, pos, tex, id)
+		{
+			orb = new Sprite(gc, tex);
+			orb.Center = new Vector2 (0.5f, 0.5f);
+			orb.Position = pos;
+			Pos = pos;
+						
+			velocity = 0.02f;
+		}
+		
+		public Rectangle Extents
+		{
+			get { return new Rectangle(Pos.X, Pos.Y, orb.Width, orb.Height); }
+		} //needed for collision purposes with the player
+		
+		private void Shrink()
+		{
+			if (orb.Scale.X > 0.2f)
+				orb.Scale += new Vector2(-SHRINK_RATE, -SHRINK_RATE);
+		} //constantly shrink orbs as they approach the player
+		
+		public void Follow(Vector3 playerPos, long dt)
+		{
+			Shrink ();
+			
+			if (velocity < 8.0f)
+				velocity += MOVE_RATE;
+			
+			xDifference = playerPos.X - Pos.X;
+			yDifference = playerPos.Y - Pos.Y;
+			distance = (float)Math.Sqrt( Math.Pow(xDifference, 2) + Math.Pow(yDifference, 2) );
+			
+			Pos += velocity * new Vector3(xDifference / distance, yDifference / distance, 0);
+			
+			orb.Position = Pos;
+		} //follow the position to the player until collision, call shrink method here 
+		
+		public void Render()
+		{
+			orb.Render();	
+		}
+	}
+}
