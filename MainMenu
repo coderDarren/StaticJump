@@ -53,67 +53,65 @@ namespace StaticJump
 			selectorTimer += dt;
 			var gpd = GamePad.GetData(0);
 			
-			if(selectorTimer >= 100)
+			if(selectorTimer >= 300)
 			{
-			if(menuState == MenuHighlights.StartGame)
-			{
-				selectorTimer = 0;
-				if((gpd.Buttons & GamePadButtons.Down) != 0)
+				if(menuState == MenuHighlights.StartGame)
 				{
-					selPos.Y = 119; 	
-					menuState = MenuHighlights.Controls;
-				}
-				if((gpd.Buttons & GamePadButtons.Up) != 0)
-				{
-					selPos.Y = 156; 
-					menuState = MenuHighlights.HighScores;
-				}
-			}
-				
-			else if(menuState == MenuHighlights.Controls)
-			{
-				selectorTimer = 0;
-				if ((gpd.Buttons & GamePadButtons.Select) != 0)
+					if((gpd.Buttons & GamePadButtons.Down) != 0)
 					{
-					menuState = MenuHighlights.ControlsSelected;
+						selPos.Y = 119; 	
+						menuState = MenuHighlights.Controls;
+						selectorTimer = 0;
 					}
-				if((gpd.Buttons & GamePadButtons.Down) != 0)
+					if((gpd.Buttons & GamePadButtons.Up) != 0)
+					{
+						selPos.Y = 156; 
+						menuState = MenuHighlights.HighScores;
+						selectorTimer = 0;
+					}
+				}
+					
+				else if(menuState == MenuHighlights.Controls)
 				{
-					selPos.Y = 156;	
-					menuState = MenuHighlights.HighScores;
+					
+					if ((gpd.Buttons & GamePadButtons.Select) != 0)
+					{
+						menuState = MenuHighlights.ControlsSelected;
+						selectorTimer = 0;
+					}
+					if((gpd.Buttons & GamePadButtons.Down) != 0)
+					{
+						selPos.Y = 156;	
+						menuState = MenuHighlights.HighScores;
+						selectorTimer = 0;
+					}
+					if((gpd.Buttons & GamePadButtons.Up) != 0)
+					{
+						selPos.Y = 81; 
+						menuState = MenuHighlights.StartGame;
+						selectorTimer = 0;
+					}
 				}
-				if((gpd.Buttons & GamePadButtons.Up) != 0)
+				else if(menuState == MenuHighlights.HighScores)
 				{
-					selPos.Y = 81; 
-					menuState = MenuHighlights.StartGame;
+					if((gpd.Buttons & GamePadButtons.Down) != 0)
+					{
+						selPos.Y = 81;
+						menuState = MenuHighlights.StartGame;
+						selectorTimer = 0;
+					}
+					if((gpd.Buttons & GamePadButtons.Up) != 0)
+					{
+						selPos.Y = 119;	selector.Position = selPos;
+						menuState = MenuHighlights.Controls;	
+						selectorTimer = 0;
+					}
 				}
-			}
-			else if(menuState == MenuHighlights.HighScores)
-			{
-				selectorTimer = 0;
-				if((gpd.Buttons & GamePadButtons.Down) != 0)
-				{
-					selPos.Y = 81;
-					menuState = MenuHighlights.StartGame;
-				}
-				if((gpd.Buttons & GamePadButtons.Up) != 0)
-				{
-					selPos.Y = 119;	selector.Position = selPos;
-					menuState = MenuHighlights.Controls;	
-				}
-				}
-				
-//			else (getting back to mainmenu from controls sprite)
-//			{
-//				selectorTimer = 0;
-//				if((gpd.Buttons & GamePadButtons.Start) != 0)
-//				{
-//					menuState = MenuHighlights.StartGame;
-//			}
-//			}
-			selector.Position = selPos;	
+			selector.Position = selPos;
 		}
-			}
+		}
+		
+		
 		public void AnimateSelector(long dt)
 		{
 			animationTimer+=dt;
@@ -137,7 +135,6 @@ namespace StaticJump
 			}
 			
 			else 
-//			if(menuState == MenuHighlights.StartGame)
 			{
 			background.Render ();
 			
@@ -152,4 +149,6 @@ namespace StaticJump
 		}
 	}
 }
+
+
 
