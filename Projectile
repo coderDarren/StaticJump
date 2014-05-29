@@ -17,6 +17,9 @@ namespace StaticJump
 		public enum Animation {scrolling , hitting};
 
 		public Animation currAnim;
+		
+		public enum BulletType { Default, Heatseeking, Scattershot };
+		public BulletType currBulletType;
 
 		private const float GRAVITY = 2.4f;
 
@@ -42,20 +45,36 @@ namespace StaticJump
 
 		private Direction dir;
 		//private float weight; // something between 0 and 2.0f
-
-
-		public Projectile (GraphicsContext gc, Vector3 pos, Texture2D tex, int dir)
+		
+		
+		
+		#region Power Type Projectiles
+		
+		private int bulletId; 
+		private float xDifference; //requred for heatseeking algorithm
+		private float yDifference; //required for heatseeking algorithm
+		private float distance; //required for heatseeking algorithm
+		private bool didFindShortestDist;
+		private float xDiffTemp;
+		private float yDiffTemp;
+		private bool didCheckObjectsOnScreen;
+		
+		#endregion
+		
+		
+		public Projectile (GraphicsContext gc, Vector3 pos, Texture2D tex, int dir, int bulletId) //bullet id to determine which direction the bullet should move
 		{
 			graphics = gc;
 
 			float Xpos = pos.X + 0.1f;
 		    this.pos.Y = pos.Y;
 			this.pos.X = Xpos;
+			this.bulletId = bulletId;
 
 			s = new Sprite(graphics, tex);
 
 			s.Center = new Vector2(0.5f, 0.5f);
-			s.Scale = new Vector2(0.8f,0.8f);
+			s.Scale = new Vector2(0.7f,0.7f);
 
 			s.Position.X = Xpos;
 			s.Position.Y = pos.Y;
@@ -79,6 +98,16 @@ namespace StaticJump
 				this.dir = Direction.Right;
 			else
 				this.dir = Direction.Left;
+			
+			xDifference = 0;
+			yDifference = 0;
+			xDiffTemp = 0;
+			yDiffTemp = 0;
+			distance = 2000; //set to a distance you know something will always be closer than
+			didFindShortestDist = false;
+			didCheckObjectsOnScreen = false;
+			
+			currBulletType = BulletType.Default;
 		}
 
 
@@ -102,14 +131,21 @@ namespace StaticJump
 
 		#region Updating
 
-		public void Update(long dt)
+		public void Update(long dt, List<Power> pows) //power list for testing purposes, enemy list later
 		{
-			Move (dt);
-			RunAnimation(dt);
-
-
+			
+			switch (currBulletType)
+			{
+			case BulletType.Default: UpdateDefault(); break;
+			case BulletType.Heatseeking: UpdateHeatSeeking(pows); break;
+			case BulletType.Scattershot: UpdateScatterShot(); break;
+			}
+			
 			if (!IsAlive)
 					currState = bulletState.launched;
+			
+			currAnim = Animation.scrolling;
+			RunAnimation(dt);
 
 			s.Position = Pos;
 
@@ -117,18 +153,75 @@ namespace StaticJump
 			Console.WriteLine(AppMain.debug ? "bullet Animation: " + currAnim : null);
 		}
 
-		private void Move(long dt)
+		private void UpdateDefault()
 		{
 			if (dir == Direction.Right)
 				Pos += new Vector3(speed, 0, 0);
 			else 
 				Pos += new Vector3(-speed, 0, 0);
-
-				currAnim = Animation.scrolling;
-
+		}
+		
+		
+		
+		#region Power Type Projectiles
+		
+		private void UpdateScatterShot()
+		{
+			switch(bulletId)
+			{
+			case 0:
+				UpdateDefault();
+				break;
+			case 1:
+				if (dir == Direction.Right)
+					Pos += new Vector3(speed, -speed / 2, 0);
+				else 
+					Pos += new Vector3(-speed, -speed / 2, 0);
+				break;
+			case 2:
+				if (dir == Direction.Right)
+					Pos += new Vector3(speed, speed / 2, 0);
+				else 
+					Pos += new Vector3(-speed, speed / 2, 0);
+				break;
+			}
+		}
+		
+		private void UpdateHeatSeeking(List<Power> powers)
+		{
+			//find the element closest to the projectile
+			//loop through elements one time
+			
+			if (!didFindShortestDist && powers.Count > 0) //make sure the list has something in it
+			{
+				for (int i = 0; i < powers.Count; i++)
+				{
+					xDifference = powers[i].Pos.X - Pos.X;
+					yDifference = powers[i].Pos.Y - Pos.Y;
+					if ((float)Math.Sqrt( Math.Pow(xDifference, 2) + Math.Pow(yDifference, 2) ) < distance)
+					{
+						xDiffTemp = powers[i].Pos.X - Pos.X; //these temps are needed so the difference variables used below arent taken from the last item in the list
+						yDiffTemp = powers[i].Pos.Y - Pos.Y;
+						distance = (float)Math.Sqrt( Math.Pow(xDifference, 2) + Math.Pow(yDifference, 2) );
+					}
+					
+					if ( i > powers.Count - 1)
+					{
+						didFindShortestDist = true;	
+					}
+				}
+			}
+			else
+				UpdateDefault();
+			
+			Pos += speed * new Vector3(xDiffTemp / distance, yDiffTemp / distance, 0);
 		}
 
-
+		#endregion
+		
+		
+		
+		
 		
 		#endregion	
 		#region Animation
@@ -173,6 +266,7 @@ namespace StaticJump
 			                      PROJECTILE_SIZE);
 				break;
 			}
+			
 
 			s.Render();	
 		}
@@ -180,4 +274,3 @@ namespace StaticJump
 
 		}	
 	}
-
