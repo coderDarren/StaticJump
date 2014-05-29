@@ -15,6 +15,8 @@ namespace StaticJump
 		public Direction dir;
 		public enum Animation { Running, Stationary, StationaryShoot, Boosting };
 		public Animation currAnim;
+		public enum Weapon { Default, Heatseeker, ScatterShot, Empbomb };
+		public Weapon currWeapon;
 		
 		private const float GRAVITY = 3.2f;
 		private const float JUMP_POW_RATE = 0.075f; // controls the rate at which jump power increases
@@ -38,13 +40,15 @@ namespace StaticJump
 		private int score;
 		private float groundedSpeed; //controls the speed of the player depending on what platform he is on
 		private float chargePower; //source of player damage
-		private const float CHARGE_POWER_STEP = 0.025f; //controls the rate at which the player loses charge power
+		private const float CHARGE_POWER_STEP = 0.045f; //controls the rate at which the player loses charge power
 		
 		private long jumpPowerTimer; // determines when to begin building jump power
 		private long jumpReleaseTimer; // used to determine how long ago the jump button was released
 		private long jumpTimer; // used to determine how long the player rises in the air after jumping
 		private long shootTimer; //used to allow the user to only shoot so many times per specified time
 		private long scoreTimer; //used to determine when to raise the score by 1;
+		private long chargeTimer; //used to decide how long the charge power stays maxed out
+		private long weaponTimer; //controls how long the player keeps a weapon when grabbing it
 		
 		public Player (GraphicsContext gc, Vector3 pos, Texture2D tex)
 		{
@@ -72,11 +76,12 @@ namespace StaticJump
 			groundedSpeed = 0;
 			shootTimer = 0;
 			scoreTimer = 0;
-			chargePower = 1.0f;
+			chargePower = 10.0f;
 			
 			currState = PlayerState.Falling;
 			dir = Direction.Right;
 			currAnim = Animation.Stationary;
+			currWeapon = Weapon.Default;
 		}
 		
 		#region Properties 
@@ -134,6 +139,12 @@ namespace StaticJump
 			set { if (value < 100.0f && value > 1.0f) chargePower = value; }
 		}
 		
+		public long WeaponTimer
+		{
+			get { return weaponTimer; }
+			set { weaponTimer = value; }
+		}
+		
 		#endregion
 		
 		
@@ -146,6 +157,8 @@ namespace StaticJump
 			Move (dt);
 			RunAnimation(dt);
 			CheckShootInput(dt);
+			UpdateChargePower(dt);
+			UpdateWeaponStates(dt);
 				
 			switch (currState)
 			{
@@ -168,10 +181,6 @@ namespace StaticJump
 				scoreTimer = 0;
 			}
 			
-			//charge power always steadily decreases
-			if (chargePower >= 1.0f)
-				chargePower -= CHARGE_POWER_STEP;
-			
 			s.Position = Pos;
 			
 			Console.WriteLine(AppMain.debug ? "Grounded: " +grounded : null);
@@ -190,7 +199,7 @@ namespace StaticJump
 			if ((gamePadData.Buttons & GamePadButtons.Left) != 0)
 			{
 				//Move Left
-				Pos += new Vector3(-speed, 0, 0);
+				Pos += new Vector3(-speed - jumpPower * 2, 0, 0);
 				dir = Direction.Left;
 				if (currAnim != Animation.StationaryShoot)
 					currAnim = Animation.Running;
@@ -198,7 +207,7 @@ namespace StaticJump
 			if ((gamePadData.Buttons & GamePadButtons.Right) != 0)
 			{
 				//Move Right
-				Pos += new Vector3(speed, 0, 0);
+				Pos += new Vector3(speed + jumpPower * 2, 0, 0);
 				dir = Direction.Right;
 				if (currAnim != Animation.StationaryShoot)
 					currAnim = Animation.Running;
@@ -311,6 +320,36 @@ namespace StaticJump
 				currState = PlayerState.Falling;
 			}
 		}
+		
+		
+		
+		private void UpdateChargePower(long dt)
+		{
+			//charge power always steadily decreases
+			
+			if (chargePower >= 96.0f)
+			{
+				chargeTimer += dt;
+				if (chargeTimer > 20000)
+				{
+					chargePower -= 5.0f;
+					chargeTimer = 0;
+				}
+			} else if (chargePower >= 10.0f && chargePower < 96.0f)
+				chargePower -= CHARGE_POWER_STEP;	
+		}
+		
+		
+		
+		
+		private void UpdateWeaponStates(long dt)
+		{
+			weaponTimer += dt;
+			if (weaponTimer > 20000)
+				currWeapon = Weapon.Default;
+		}
+		
+		
 		
 		#endregion
 		
