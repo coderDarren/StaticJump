@@ -9,6 +9,15 @@ namespace StaticJump
 {
 	public class PlayerAttribute
 	{
+		public enum State { Normal, Pulsing };
+		public State currState;
+		
+		private const long FRAME_DURATION = 100;
+		private const int FRAME_WIDTH = 300;
+		private const int FRAME_HEIGHT = 24;
+		private int activeFrame;
+		private long animationTimer;
+		
 		private GraphicsContext graphics;
 		private Vector3 pos;
 		private Sprite att;
@@ -21,26 +30,50 @@ namespace StaticJump
 			att.Center = new Vector2(0.5f, 0);
 			this.pos = pos;
 			att.Position = this.pos;
+			att.Width = FRAME_WIDTH;
+			att.Height = FRAME_HEIGHT;
+			
 			attBar = new ProgressBar(graphics, this.pos + new Vector3(-att.Width / 2 + 36, 12, 0));
+			animationTimer = 0;
+			activeFrame = 0;
+			currState = State.Normal;
 		}
 		
-		public void UpdateAttribute(float attVal, float maxAttVal)
+		public void UpdateAttribute(float attVal, float maxAttVal, long dt)
 		{
-			for (int i = 1; i < 40; i++)  //there will be 20 total bars, check in increments of a twentieth
-			{
+			for (int i = 1; i < 41; i++)  //there will be 40 total bars, check in increments of a fourtieth
+			{ //every 2 orbs is 1 bar
 				//adding new bars
-				if (attVal > (maxAttVal / 39) * i)
+				if (attVal > (maxAttVal / 40) * i)
 					if (attBar.BarsCount < i)
 						attBar.AddBar();
 				
 				//removing unwanted bars
-				if (attVal < (maxAttVal / 39) * i)
+				if (attVal < (maxAttVal / 40) * i)
 					if (attBar.BarsCount > i)
 						attBar.RemoveBar();
 			}
 			
 			attBar.UpdateBars();
 			
+			if (currState == State.Pulsing)
+				Animate (dt);
+			else
+				activeFrame = 0;
+			
+		}
+		
+		private void Animate(long dt)
+		{
+			animationTimer += dt;
+			if (animationTimer > FRAME_DURATION)
+			{
+				activeFrame++;
+				animationTimer = 0;
+			}
+			
+			if (activeFrame > 5)
+				activeFrame = 0;
 		}
 		
 		public void SetAttributeBarColor(float r, float g, float b, float a)
@@ -50,9 +83,15 @@ namespace StaticJump
 		
 		public void Render()
 		{
+			att.SetTextureCoord(activeFrame * FRAME_WIDTH,
+				                0,
+				               ((activeFrame+1)*FRAME_WIDTH),
+				               FRAME_HEIGHT);
+			
 			att.Render();
 			attBar.Render();
 		}
 		
 	}
 }
+
