@@ -1,0 +1,76 @@
+using System;
+using System.Collections.Generic;
+using Sce.PlayStation.Core;
+using Sce.PlayStation.Core.Graphics;
+using Sce.PlayStation.Core.Imaging;
+
+namespace StaticJump
+{
+	public class PowerUnit : GameObject
+	{
+		public enum Power { Heatseeker, ScatterShot, EMP, None };
+		public Power currPower;
+		
+		private const float ALPHA_STEP = 0.056f; //rate at which the power will fade in
+		
+		private GraphicsContext graphics;
+		private Sprite container;
+		private Sprite currentPower;
+		private float alpha;
+		private bool powerEstablished;
+		
+		public PowerUnit (GraphicsContext gc, Vector3 pos, Texture2D tex, string id) : base(gc, pos, tex, id)
+		{
+			graphics = gc;
+			container = new Sprite(graphics, tex);
+			container.Center = new Vector2(0.5f, 0.5f);
+			Pos = pos;
+			container.Position = Pos;
+			alpha = 0.0f;
+			powerEstablished = false; //set true right after sprite has been created
+			currPower = Power.None;
+		}
+		
+		public bool PowerEstablished
+		{
+			get { return powerEstablished; }
+			set { powerEstablished = value; }
+		}
+		
+		public void Update()
+		{
+			if (currPower != Power.None)
+			{
+				if (alpha < 0.9f)
+				{
+					alpha += ALPHA_STEP;
+					currentPower.SetColor(1.0f, 1.0f, 1.0f, alpha);
+				}
+				currentPower.Position = Pos;
+			}
+			
+			container.Position = Pos;	
+		}
+		
+		public void FadePowerIn(Texture2D tex)
+		{
+			if (!powerEstablished)
+			{
+				alpha = 0.0f;
+				currentPower = new Sprite(graphics, tex);
+				currentPower.Center = new Vector2(0.5f, 0.5f);
+				currentPower.Position = Pos;
+				powerEstablished = true;
+			}
+		}
+		
+		public void Render()
+		{
+			container.Render();
+			
+			if (currPower != Power.None && powerEstablished)
+				currentPower.Render();
+		}
+	}
+}
+
