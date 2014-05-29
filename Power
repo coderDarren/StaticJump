@@ -18,8 +18,42 @@ namespace StaticJump
 		private bool willExplode;
 		private bool grounded;
 		
+		private const int FRAME_SIZE = 52;
+		private const int EXPLODE_FRAME_SIZE = 125;
+		private int activeFrame;
+		private long animationTimer;
+		
+		private GraphicsContext graphics;
+		private Sprite pow;
+		private Sprite powIcon;
+		private Texture2D explodeTex; 
+		private Texture2D powIconTex;
+		
+		
 		public Power (GraphicsContext gc, Vector3 pos, Texture2D tex, string id, float scroll_speed) : base(gc, pos, tex, id)
 		{ 
+			graphics = gc; //need to store gc in a variable for use in creating a new sprite upon explosion
+			
+			pow = new Sprite(gc, tex);
+			Pos = pos;
+			pow.Position = Pos;
+			pow.Center = new Vector2(0.5f, 0.5f);
+			pow.Scale = new Vector2(0.85f, 0.85f);
+			pow.Width = FRAME_SIZE;
+			pow.Height = FRAME_SIZE;
+			
+			explodeTex = new Texture2D("Application/Assets/powbox_explosion_sheet.png", false);
+			
+			switch(id)
+			{
+			case "pink": powIconTex = new Texture2D("Application/Assets/heatseeker_icon.png", false); break;
+			case "green": powIconTex = new Texture2D("Application/Assets/empshot_icon.png", false); break;
+			case "yellow": powIconTex = new Texture2D("Application/Assets/scattershot_icon.png", false); break;
+			}
+			
+			activeFrame = 0;
+			animationTimer = 0;
+			
 			this.scroll_speed = scroll_speed;
 			willExplode = false;
 			alpha = 1.0f;
@@ -27,8 +61,14 @@ namespace StaticJump
 			grounded = false;
 		} //scroll speed passed by whatever platform a power box spawns on
 		
-		public virtual Rectangle Extents
-		{ get { return new Rectangle(0,0,0,0); } } //override in subclasses
+		
+		#region Properties
+		
+		
+		public Rectangle Extents
+		{ 
+			get { return new Rectangle(Pos.X,Pos.Y,pow.Width,pow.Height); } 
+		} //override in subclasses
 		
 		public float ScrollSpeed
 		{ get { return scroll_speed; }	}
@@ -45,31 +85,64 @@ namespace StaticJump
 			set { grounded = value; }
 		}
 		
-		public virtual void Update(long dt) 
+		#endregion 
+		
+		
+		
+		#region Updating
+		
+		public void Update(long dt) 
 		{
+			
+			switch (currState)
+			{
+			case State.Solid: 
+				Animate(dt, ref animationTimer, 11, ref activeFrame);
+				break;
+			case State.Exploded: 
+				UpdateExploded(pow);
+				Animate(dt, ref animationTimer, 2, ref activeFrame);
+				UpdateIcon();
+				break;
+			}
+			
+			
 			if (!grounded)
 				Pos += new Vector3(-scroll_speed, FALL_SPEED, 0);
 			else
 				Pos += new Vector3(-scroll_speed, 0, 0);
 			
-			if (alpha <= 0)
-				Alive = false;
+			pow.Position = Pos;
 		} 
 		
-		public void UpdateSolid()
-		{} // move the sprite left with scroll_speed 
-		
-		public void UpdateExploded(ref Sprite s)
+		public void UpdateExploded(Sprite s)
 		{ 
 			alpha -= 0.01f;
 			s.SetColor(1.0f, 1.0f, 1.0f, alpha); 
-			
 		} // fade out the texture //continue moving the sprite left
 		
-		public virtual void Explode()
+		public void Explode()
 		{
+			WillExplode = false;
+			
+			pow = new Sprite(graphics, explodeTex);
+			pow.Center = new Vector2(0.5f, 0.5f);
+			pow.Scale = new Vector2(0.85f, 0.85f);
+			pow.Width = EXPLODE_FRAME_SIZE;
+			pow.Height = EXPLODE_FRAME_SIZE;
+			pow.Position = Pos;
+			
+			//spawn weapon icon based off of id
+			powIcon = new Sprite(graphics, powIconTex);
+			powIcon.Center = new Vector2(0.5f, 0.5f);
+			powIcon.Scale = new Vector2(0.85f, 0.85f);
+			powIcon.Position = Pos;
+			
+			activeFrame = 0;
+			
 			currState = State.Exploded;
 		}//replace sprite with exploding tex //currstate will be set to exploded
+	
 		
 		public void Animate(long dt, ref long timer, int frame_Num, ref int frame)
 		{
@@ -91,7 +164,36 @@ namespace StaticJump
 			}
 		}
 		
-		public virtual void Render() {} //nothing needs to go in this method
+		private void UpdateIcon()
+		{
+			powIcon.Position = Pos;	
+		}
+		
+		#endregion
+		
+		public void Render() 
+		{
+			if (currState == Power.State.Solid)
+			{
+				pow.SetTextureCoord(activeFrame * FRAME_SIZE,
+				                    0,
+				                    ((activeFrame+1) * FRAME_SIZE)-1,
+				                    FRAME_SIZE);
+			}
+			else
+			{
+				pow.SetTextureCoord(activeFrame * EXPLODE_FRAME_SIZE,
+				                    0,
+				                    ((activeFrame+1) * EXPLODE_FRAME_SIZE)-1,
+				                    EXPLODE_FRAME_SIZE);
+			}
+			
+			pow.Render();
+			
+			if (currState == State.Exploded)
+				powIcon.Render();
+		} 
 	}
 }
+
 
