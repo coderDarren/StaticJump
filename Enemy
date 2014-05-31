@@ -6,30 +6,46 @@ using Sce.PlayStation.Core.Imaging;
 
 namespace StaticJump
 {
-	public class Enemy : GameObject
+	public abstract class Enemy : GameObject
 	{
-		private const float FALL_SPEED = 1.0f;
-		
 		public enum State { Alive, Dead };
+		public enum Anim { Shooting, Electrocuted, Falling };
 		public State currState;
+		public Anim currAnim;
 		
-		public Enemy (GraphicsContext gc, Vector3 pos, Texture2D tex, string id) : base(gc, pos, tex, id)
+		private GraphicsContext graphics;
+		protected Sprite e;
+		protected Projectile p; //each enemy will have their projectile
+		protected List<Projectile> projectiles; 
+		private float hp;
+		
+		public Enemy(GraphicsContext gc, Vector3 pos, Texture2D tex, string id, float hp) : base (gc, pos, tex, id)
 		{
-			currState = State.Alive;
+			graphics = gc;
+			projectiles = new List<Projectile>();
+			e = new Sprite(graphics, tex);
+			e.Center = new Vector2(0.5f, 0.5f);
+			Pos = pos;
+			e.Position = Pos;
+			this.hp = hp;
 		}
 		
-		public void Shoot(ref Sprite b, float b_speed)
-		{} //Pass different types of bullets from sublcasses to this method
 		
-		public void UpdateLiving(ref Sprite s, float speed)
-		{} //Move the position of the enemy, speed needs to be a parameter bc different enemies will move different speeds
-		
-		public void UpdateDying(ref Sprite s)
-		{} //all enemies will fall when they die
-		
-		public void Render(Sprite s)
+		public virtual void Update()
 		{
-			s.Render();	
+			e.Position = Pos;
+		}
+		
+		public abstract void UpdateAlive();
+		
+		public abstract void UpdateDead();
+
+		public void Render()
+		{
+			foreach(Projectile proj in projectiles)
+				proj.Render();
+			
+			e.Render();
 		}
 	}
 }
