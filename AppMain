@@ -23,7 +23,6 @@ namespace StaticJump
 		private static int totalPlatforms; 
 		
 		private static Random randGen;
-		private static int randCoordX;
 		private static int randCoordY;
 		private static int randNum;
 		
@@ -53,8 +52,6 @@ namespace StaticJump
 		
 		private static Texture2D platform1Tex;
 		private static Texture2D platform1CrumbleTex;
-		private static Texture2D bg1Tex; //background
-		private static Texture2D mg1Tex; //midground
 		private static Texture2D playerTex;
 		private static Texture2D jumpAttrTex;
 		private static Texture2D chargeAttrTex;
@@ -85,12 +82,11 @@ namespace StaticJump
 		
 		private static Platform platform;
 		private static Background background;
-		private static Background midground;
 		private static Player player;
-		private static Scoreboard scoreLabel;
 		private static Power pow;
 		private static Orb orb;
 		private static Projectile projectile;
+		private static GameLabel gameLabels;
 		
 		#endregion
 		
@@ -158,13 +154,13 @@ namespace StaticJump
 			Sound scream;
 			scream = new Sound("Application/Sounds/wilhelm_scream.wav");
 			screamSP = scream.CreatePlayer();
-			screamSP.Volume = 0.5f;
+			screamSP.Volume = 0.15f;
 			
 			bgm = new Bgm("Application/Sounds/string5140bpm.mp3");
 			bgmp = bgm.CreatePlayer();
-			bgmp.Volume = 0.5f;
+			bgmp.Volume = 0.1f;
 			bgmp.Loop = true;
-			bgmp.Play();
+			//bgmp.Play();
 			
 			currState = GameState.Menu;
 		}
@@ -180,8 +176,6 @@ namespace StaticJump
 		private static void InitializeTextures()
 		{
 			platform1Tex = new Texture2D("Application/Assets/platform1.png", false);
-			bg1Tex = new Texture2D("Application/Assets/background1.png", false);
-			mg1Tex = new Texture2D("Application/Assets/midground1.png", false);
 			playerTex = new Texture2D("Application/Assets/player_anim_sheet.png", false);
 			jumpAttrTex = new Texture2D("Application/Assets/jumppower_attribute.png", false);
 			chargeAttrTex = new Texture2D("Application/Assets/chargepowerbar_sheet.png", false);
@@ -206,10 +200,8 @@ namespace StaticJump
 			SpawnPlatforms(platform1Tex, totalPlatforms-1, graphics.Screen.Width + 56, 150, graphics.Screen.Height - 100, 
 			               (graphics.Screen.Width + graphics.Screen.Width / (totalPlatforms-1)) / (totalPlatforms-1));
 
-			background = new Background(graphics, bg1Tex, 0.2f);
-			midground = new Background(graphics, mg1Tex, 0.4f);
+			background = new Background(graphics, 0.4f);
 			player = new Player(graphics, new Vector3(platforms[3].Pos.X, platforms[3].Pos.Y - 80, 0), playerTex);
-			scoreLabel = new Scoreboard(graphics);
 			playerJumpPowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 + 300, graphics.Screen.Height - 24, 0), jumpAttrTex);
 			playerJumpPowerBar.SetAttributeBarColor(1.0f, 1.0f, 0.0f, 1.0f);
 			playerChargePowerBar = new PlayerAttribute(graphics, new Vector3(graphics.Screen.Width / 2 - 300, graphics.Screen.Height - 24, 0), chargeAttrTex);
@@ -217,6 +209,7 @@ namespace StaticJump
 			hudBar = new Sprite(graphics, hudBarTex);
 			hudBar.Position = new Vector3(0, graphics.Screen.Height - 28, 0);
 			powerUnit = new PowerUnit(graphics, new Vector3(32, graphics.Screen.Height - hudBar.Height - 32, 0), powerUnitTex, "power_unit");
+			gameLabels = new GameLabel(graphics);
 		}	
 		
 		private static void StartGame()
@@ -281,22 +274,15 @@ namespace StaticJump
 				p.Update(deltaTime);	
 			}
 			background.UpdateBackground();
-			midground.UpdateBackground();
 			foreach (Orb o in orbs)
 			{
 				o.Follow(player.Pos, deltaTime);
 			}
 			UpdateDifficulty();
 			
-			scoreLabel.UpdateScore(player.Score);
 			powerUnit.Update();
-			
-			if (player.Pos.Y > graphics.Screen.Height)
-			{
-				screamTimer += deltaTime;
-				if (screamTimer < 50)
-					screamSP.Play();
-			}
+			gameLabels.UpdateScore(player.Score);
+			gameLabels.UpdateWeaponTimer(player.WeaponTimer);
 			
 			CheckCollisions();
 			CheckForFallingPlatforms();
@@ -305,6 +291,15 @@ namespace StaticJump
 			CheckForDeadObjects();
 			CheckForCurrentPower();
 			CheckForPulsingChargeBar();
+			
+			
+			if (player.Pos.Y > graphics.Screen.Height)
+			{
+				screamTimer += deltaTime;
+				if (screamTimer < 50)
+					screamSP.Play();
+			}
+			
 			
 			CheckPlayInput();
 						
@@ -829,9 +824,7 @@ namespace StaticJump
 			graphics.Clear ();
 			
 			background.Render();
-			midground.Render();
 			hudBar.Render();
-			powerUnit.Render();
 			foreach (Platform ter in platforms)
 			{
 				ter.Render();	
@@ -840,7 +833,8 @@ namespace StaticJump
 			{
 				p.Render();	
 			}
-			scoreLabel.Render();
+			gameLabels.Render(); //only render if player weapon is not default
+			powerUnit.Render();
 			playerJumpPowerBar.Render();
 			playerChargePowerBar.Render();
 			player.Render();
