@@ -50,6 +50,12 @@ namespace StaticJump
 		private long chargeTimer; //used to decide how long the charge power stays maxed out
 		private long weaponTimer; //controls how long the player keeps a weapon when grabbing it
 		
+		private long particleTimer;
+		private List<Particle> particles;
+		private Particle particle;
+		private Texture2D particleTex;
+		private static Random randRot;
+		
 		public Player (GraphicsContext gc, Vector3 pos, Texture2D tex)
 		{
 			graphics = gc;
@@ -77,6 +83,11 @@ namespace StaticJump
 			shootTimer = 0;
 			scoreTimer = 0;
 			chargePower = 10.0f;
+			
+			particleTimer = 0;
+			particles = new List<Particle>();
+			particleTex = new Texture2D("Application/Assets/grass_particle.png", false);
+			randRot = new Random();
 			
 			currState = PlayerState.Falling;
 			dir = Direction.Right;
@@ -159,6 +170,7 @@ namespace StaticJump
 			CheckShootInput(dt);
 			UpdateChargePower(dt);
 			UpdateWeaponStates(dt);
+			UpdateJumpParticles(dt);
 				
 			switch (currState)
 			{
@@ -175,7 +187,7 @@ namespace StaticJump
 				activeFrame = 3;					//This will prevent the player from running in air
 			
 			scoreTimer += dt;
-			if (scoreTimer >= 250)
+			if (scoreTimer >= 50)
 			{
 				score++;
 				scoreTimer = 0;
@@ -218,7 +230,11 @@ namespace StaticJump
 				jumpPowerTimer = 0;
 				jumpReleaseTimer += dt;
 				if (jumpReleaseTimer <= 300 && currState != PlayerState.Falling)
+				{
 					currState = PlayerState.Jumping;
+					if (particles.Count < 4)
+						AddJumpParticles(dt);	
+				}
 				
 				if (currAnim != Animation.StationaryShoot && currAnim != Animation.Running)
 					currAnim = Animation.Stationary;
@@ -301,7 +317,7 @@ namespace StaticJump
 		private void UpdateJumping(long dt)
 		{
 			Console.WriteLine(AppMain.debug ? "Updating jump" : null);
-			
+						
 			if (jumpPower < 0.3f)
 				jumpDamper += 0.1f;
 			else
@@ -329,6 +345,7 @@ namespace StaticJump
 			
 			if (chargePower >= 96.0f)
 			{
+				chargePower = 99.0f;
 				chargeTimer += dt;
 				if (chargeTimer > 20000)
 				{
@@ -344,9 +361,14 @@ namespace StaticJump
 		
 		private void UpdateWeaponStates(long dt)
 		{
-			weaponTimer += dt;
-			if (weaponTimer > 20000)
-				currWeapon = Weapon.Default;
+			if (currWeapon != Weapon.Default)
+			{
+				weaponTimer += dt;
+				if (weaponTimer > 30000)
+					currWeapon = Weapon.Default;
+			}
+			else
+				weaponTimer = 0;
 		}
 		
 		
@@ -403,6 +425,44 @@ namespace StaticJump
 		
 		
 		
+		#region Particles
+		
+		private void AddJumpParticles(long dt)
+		{
+			//Add particles
+			particleTimer += dt;
+			
+			particle = new Particle(graphics, Pos + new Vector3(randRot.Next(-20, 20), s.Height / 2, 0), particleTex,
+				                        "grass_particle", 1.0f, 500, (float)randRot.Next(20));
+			particles.Add(particle);
+			
+			particleTimer = 0;
+			
+		}
+		
+		private void UpdateJumpParticles(long dt)
+		{
+			
+			//Handle particle logic
+			for (int i = 0; i <= particles.Count - 1; i++)
+			{
+				particles[i].Pos += new Vector3(-groundedSpeed, 0, 0);
+				particles[i].FadeOut(0.044f);
+				//particles[i].Fall(1.25f);
+				particles[i].Update(dt);
+			}
+			
+			//Remove dead particles
+			for (int i = particles.Count-1; i >=0; i--)
+				if (particles[i].Alive == false)
+					particles.RemoveAt(i);
+		}
+		
+		
+		#endregion
+		
+		
+		
 		public void Render()
 		{
 			switch (currAnim)
@@ -430,6 +490,8 @@ namespace StaticJump
 			}
 			
 			s.Render();	
+			foreach(Particle p in particles)
+				p.Render();
 		}
 	}
 }
