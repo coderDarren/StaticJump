@@ -9,21 +9,18 @@ namespace StaticJump
 	public class Background
 	{
 		private GraphicsContext graphics;
-		private Vector3 pos;
-		private Vector3 pos2;
+		private List<Sprite> backgrounds;
+		private List<Texture2D> bgTextures;
 		private Sprite bg;
-		private Sprite bg2;
+		private Texture2D bgTex;
 		private float scroll_speed;
 
-		public Background (GraphicsContext gc, Texture2D tex, float scroll_speed)
+		public Background (GraphicsContext gc, float scroll_speed)
 		{
 			graphics = gc;
-			pos = new Vector3(0,0,0);
-			pos2 = pos + new Vector3(graphics.Screen.Width, 0, 0);
-			bg = new Sprite(gc, tex);
-			bg2 = new Sprite(gc, tex);
-			bg.Position = pos;
-			bg2.Position = pos2;
+			backgrounds = new List<Sprite>();
+			bgTextures = new List<Texture2D>();
+			LoadBGList();
 			this.scroll_speed = scroll_speed;
 		}
 		
@@ -32,24 +29,69 @@ namespace StaticJump
 			set { scroll_speed = value; }	
 		}
 		
+		private void LoadBGList()
+		{
+			bgTex = new Texture2D("Application/Assets/background1.png", false);
+			bgTextures.Add(bgTex);
+			bgTex = new Texture2D("Application/Assets/background2.png", false);
+			bgTextures.Add(bgTex);
+			bgTex = new Texture2D("Application/Assets/background3.png", false);
+			bgTextures.Add(bgTex);
+			bgTex = new Texture2D("Application/Assets/background4.png", false);
+			bgTextures.Add(bgTex);
+			bgTex = new Texture2D("Application/Assets/background5.png", false);
+			bgTextures.Add(bgTex);
+			bg = new Sprite(graphics, bgTextures[0]);	
+			backgrounds.Add(bg);
+			bg = new Sprite(graphics, bgTextures[1]);	
+			bg.Position += new Vector3(graphics.Screen.Width, 0, 0);
+			backgrounds.Add(bg);
+		}
+		
 		public void UpdateBackground()
 		{
-			pos += new Vector3(-scroll_speed, 0, 0);
-			pos2 = pos + new Vector3(graphics.Screen.Width, 0, 0);
 			
-			if (pos.X <= -graphics.Screen.Width)
+			//Load up the collection at runtime
+			if (backgrounds.Count < 5)
 			{
-				pos = new Vector3(0, 0, 0);
+				//Move first element for other elements to train off of
+				backgrounds[0].Position += new Vector3(-scroll_speed, 0, 0);
+				
+				//Maintain each element's position
+				for (int i = 1; i < backgrounds.Count; i++)
+				{
+					backgrounds[i].Position.X = backgrounds[i-1].Position.X + graphics.Screen.Width;	
+				}
+				
+				//Add new elements
+				if (backgrounds[backgrounds.Count-1].Position.X <= 0)
+				{
+					bg = new Sprite(graphics, bgTextures[backgrounds.Count]);
+					bg.Position.X = graphics.Screen.Width;
+					backgrounds.Add(bg);
+				}
+			}
+			if (backgrounds.Count == 5) //Prepare to empty collection for recycle
+			{
+				backgrounds[backgrounds.Count-2].Position += new Vector3(-scroll_speed, 0, 0);
+				backgrounds[backgrounds.Count-1].Position.X = backgrounds[backgrounds.Count-2].Position.X + graphics.Screen.Width;
+				backgrounds[0].Position.X = backgrounds[backgrounds.Count-1].Position.X + graphics.Screen.Width;
+				
+				if (backgrounds[0].Position.X <= 0)
+				{
+					for(int i = backgrounds.Count-1; i >= 2; i--)
+						backgrounds.RemoveAt(i);
+				}
 			}
 			
-			bg.Position = pos;
-			bg2.Position = pos2;
 		}
 		
 		public void Render()
 		{
-			bg.Render();
-			bg2.Render();
+			foreach(Sprite b in backgrounds)
+			{
+				b.Render();	
+			}
 		}
 	}
 }
