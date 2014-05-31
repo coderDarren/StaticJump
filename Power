@@ -29,6 +29,12 @@ namespace StaticJump
 		private Texture2D explodeTex; 
 		private Texture2D powIconTex;
 		
+		private List<Particle> particles;
+		private Particle particle;
+		private static Random particle_pos;
+		private long particle_timer;
+		private Texture2D partTex;
+		
 		
 		public Power (GraphicsContext gc, Vector3 pos, Texture2D tex, string id, float scroll_speed) : base(gc, pos, tex, id)
 		{ 
@@ -59,6 +65,10 @@ namespace StaticJump
 			alpha = 1.0f;
 			currState = State.Solid;
 			grounded = false;
+			
+			particles = new List<Particle>();
+			particle_pos = new Random();
+			partTex = new Texture2D("Application/Assets/orb.png", false);
 		} //scroll speed passed by whatever platform a power box spawns on
 		
 		
@@ -102,6 +112,7 @@ namespace StaticJump
 			case State.Exploded: 
 				UpdateExploded(pow);
 				Animate(dt, ref animationTimer, 2, ref activeFrame);
+				UpdateParticles(dt);
 				UpdateIcon();
 				break;
 			}
@@ -169,6 +180,26 @@ namespace StaticJump
 			powIcon.Position = Pos;	
 		}
 		
+		private void UpdateParticles(long dt)
+		{
+			particle_timer += dt;
+			if (particle_timer > 400)
+			{
+				particle = new Particle(graphics, Pos + new Vector3(particle_pos.Next(-20, 20), powIcon.Height / 2, 0), 
+				                        partTex, "power_particle", 0.2f, 1200, 0);
+				particles.Add(particle);
+				particle_timer = 0;
+			}
+			
+			foreach(Particle p in particles)
+			{
+				p.Rise(0.35f);
+				p.Expand(0.002f, 0.4f);
+				p.Pos += new Vector3(-scroll_speed, 0, 0);
+				p.Update(dt);
+			}
+		}
+		
 		#endregion
 		
 		public void Render() 
@@ -191,9 +222,12 @@ namespace StaticJump
 			pow.Render();
 			
 			if (currState == State.Exploded)
+			{
+				foreach(Particle p in particles)
+					p.Render();
 				powIcon.Render();
+			}
 		} 
 	}
 }
-
 
